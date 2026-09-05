@@ -84,12 +84,14 @@ if (ROOT / "ZSignWrapper+Swift.swift").exists():
 
 certificate_bridge = read("ZSignwrapper.mm")
 for fragment, label in {
-    "kSecOIDX509V1ValidityNotAfter": "Certificate expiration extraction",
-    "kSecOIDX509V1SerialNumber": "Certificate serial-number extraction",
-    'result[@"expirationDate"]': "Certificate expiration metadata result",
+    "SecCertificateCopySubjectSummary": "Certificate subject extraction",
+    "SecCertificateCopyCommonName": "Certificate common-name extraction",
 }.items():
     if fragment not in certificate_bridge:
         errors.append(f"{label} is missing")
+for fragment in ("SecCertificateCopyValues", "kSecOIDX509V1ValidityNotAfter", "kSecOIDX509V1SerialNumber"):
+    if fragment in certificate_bridge:
+        errors.append(f"iOS-incompatible Security certificate value API remains: {fragment}")
 
 keychain = read("FreeSign/Utilities/KeychainHelper.swift")
 if "saveCertificatePassword" not in keychain or "loadCertificatePasswordSync" not in keychain:
