@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @StateObject private var dataManager = AppDataManager.shared
-    @StateObject private var theme = ThemeManager.shared
+    @ObservedObject private var theme = ThemeManager.shared
     @ObservedObject private var settings = Settings.shared
     @State private var showCleanupAlert = false
     
@@ -57,7 +57,11 @@ struct SettingsView: View {
                 .foregroundColor(theme.accentColor)
             }
             ToolbarItem(placement: .primaryAction) {
-                TabAssistantButton(sourceView: "Settings", summary: settingsAssistantSummary)
+                TabAssistantButton(
+                    sourceView: "Settings",
+                    summary: settingsAssistantSummary,
+                    details: settingsAssistantDetails
+                )
             }
         }
         .alert("Clean Temporary Files?", isPresented: $showCleanupAlert) {
@@ -78,6 +82,22 @@ struct SettingsView: View {
         let installed = dataManager.installedApps.count
         return "Settings tab: \(certs) certificate(s), \(imported) imported app(s), "
              + "\(installed) signed app(s). Theme: \(theme.preset.displayName)."
+    }
+
+    private var settingsAssistantDetails: [String: Any] {
+        [
+            "theme": theme.preset.displayName,
+            "cardStyle": theme.cardStyle.displayName,
+            "backgroundPhotoEnabled": theme.hasPhoto,
+            "appIconStyle": theme.appIconStyle.displayName,
+            "showAppIcons": theme.showAppIcons,
+            "smoothAnimations": settings.showAnimations,
+            "autoImportFromRepos": settings.autoImportFromRepos,
+            "confirmDeletions": settings.confirmDeletions,
+            "showTips": settings.showTips,
+            "developerMode": settings.developerMode,
+            "assistantProviderActive": AISettings.shared.hasActiveProvider
+        ]
     }
     
     // MARK: - Header
@@ -307,7 +327,10 @@ struct SettingsView: View {
                     subtitle: "Enable fluid transitions",
                     isOn: Binding(
                         get: { settings.showAnimations },
-                        set: { settings.showAnimations = $0 }
+                        set: {
+                            settings.showAnimations = $0
+                            settings.save()
+                        }
                     )
                 )
                 
@@ -371,7 +394,10 @@ struct SettingsView: View {
                     subtitle: "Automatically import apps from repositories",
                     isOn: Binding(
                         get: { settings.autoImportFromRepos },
-                        set: { settings.autoImportFromRepos = $0 }
+                        set: {
+                            settings.autoImportFromRepos = $0
+                            settings.save()
+                        }
                     )
                 )
                 
@@ -386,7 +412,10 @@ struct SettingsView: View {
                     subtitle: "Ask before deleting apps or certificates",
                     isOn: Binding(
                         get: { settings.confirmDeletions },
-                        set: { settings.confirmDeletions = $0 }
+                        set: {
+                            settings.confirmDeletions = $0
+                            settings.save()
+                        }
                     )
                 )
                 
@@ -401,7 +430,10 @@ struct SettingsView: View {
                     subtitle: "Display helpful tips and hints",
                     isOn: Binding(
                         get: { settings.showTips },
-                        set: { settings.showTips = $0 }
+                        set: {
+                            settings.showTips = $0
+                            settings.save()
+                        }
                     )
                 )
             }
@@ -533,6 +565,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 .contentShape(Rectangle())
+                .accessibilityIdentifier("settings.manageCertificates")
 
                 Divider()
                     .background(AppColors.cardBorder)
@@ -608,6 +641,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 .contentShape(Rectangle())
+                .accessibilityIdentifier("settings.labAssistant")
 
                 Divider()
                     .background(AppColors.cardBorder)

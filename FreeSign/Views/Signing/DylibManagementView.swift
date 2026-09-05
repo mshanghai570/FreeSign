@@ -9,7 +9,7 @@ struct DylibManagementView: View {
     @Binding var injectDylibs: [String]
     
     @StateObject private var dylibManager = DylibManager.shared
-    @StateObject private var theme = ThemeManager.shared
+    @ObservedObject private var theme = ThemeManager.shared
     
     @State private var showFilePicker = false
     @State private var isImporting = false

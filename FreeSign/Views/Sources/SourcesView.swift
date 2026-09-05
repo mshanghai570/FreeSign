@@ -180,7 +180,11 @@ struct SourcesView: View {
         }
 
         ToolbarItem(placement: .primaryAction) {
-            TabAssistantButton(sourceView: "Sources", summary: sourcesAssistantSummary)
+            TabAssistantButton(
+                sourceView: "Sources",
+                summary: sourcesAssistantSummary,
+                details: sourcesAssistantDetails
+            )
         }
     }
 
@@ -192,6 +196,22 @@ struct SourcesView: View {
         for source in dataManager.sources { appCount += source.apps.count }
         return "Sources tab: \(dataManager.sources.count) repository/repositories containing "
              + "\(appCount) app(s)."
+    }
+
+    private var sourcesAssistantDetails: [String: Any] {
+        [
+            "selectedSection": selectedTab.rawValue,
+            "searchQuery": searchText,
+            "visibleRepositories": dataManager.sources.prefix(20).map {
+                "\($0.name): \($0.apps.count) apps"
+            },
+            "visibleSourceApps": filteredSourceApps.prefix(25).map {
+                "\($0.name) by \($0.developerName)"
+            },
+            "importedIPAs": filteredImportedApps.prefix(20).map {
+                "\($0.name) (\($0.bundleID))"
+            }
+        ]
     }
 
     // MARK: - Sources Section

@@ -3,51 +3,46 @@ import UniformTypeIdentifiers
 
 // MARK: - File Importer Utility
 
-/// Centralized file importing utility that handles various file types
-/// and provides a consistent interface for importing files into FreeSign.
+/// Centralized file importing utility. Every externally selected file is copied
+/// into the app container before asynchronous analysis begins, so Files sandbox
+/// access never expires while a certificate or IPA is being processed.
 final class FileImporter: ObservableObject {
-    
     static let shared = FileImporter()
-    
+
     @Published var isImporting = false
     @Published var importProgress = ""
     @Published var currentFileURL: URL?
-    /// Populated when an import fails (for UI feedback).
     @Published var lastImportError: String?
 
-    /// "Open with" events fire BOTH the AppDelegate callback and SwiftUI's
-    /// onOpenURL — dedupe so we don't import the same file twice.
+    /// Direct File imports require a password before a P12 can be read. The
+    /// app root presents the password sheet whenever this URL is non-nil.
+    @Published var pendingCertificateURL: URL?
+    @Published var pendingCertificateFileName = ""
+
+    /// "Open with" events can reach both UIKit and SwiftUI. Keep a short
+    /// dedupe window so a single external selection is never imported twice.
     private var lastHandledURL: URL?
     private var lastHandledDate = Date.distantPast
 
     private init() {}
-    
-    // MARK: - Supported File Types
-    
-    /// Resolves a UTType without force-unwrapping — custom identifiers from Info.plist
-    /// are not always available during static initialization on device.
+
+    // MARK: - Supported file types
+
     private static func resolvedUTTypes(
         identifiers: [String],
         filenameExtensions: [String] = []
     ) -> [UTType] {
         var types: [UTType] = []
-        for id in identifiers {
-            if let type = UTType(id) {
-                types.append(type)
-            }
+        for identifier in identifiers {
+            if let type = UTType(identifier) { types.append(type) }
         }
-        for ext in filenameExtensions {
-            if let type = UTType(filenameExtension: ext) {
-                types.append(type)
-            }
+        for fileExtension in filenameExtensions {
+            if let type = UTType(filenameExtension: fileExtension) { types.append(type) }
         }
-        if types.isEmpty {
-            types.append(.data)
-        }
+        if types.isEmpty { types.append(.data) }
         return types.removingDuplicates()
     }
-    
-    /// All supported file types and their UTTypes
+
     static let supportedFileTypes: [FileType] = [
         FileType(
             name: "IPA Files",
@@ -86,295 +81,258 @@ final class FileImporter: ObservableObject {
             contentType: "com.freesign.local-model"
         )
     ]
-    
-    /// Get UTTypes for a specific file type
-    static func utTypes(for fileType: FileType) -> [UTType] {
-        return fileType.utTypes
-    }
-    
-    /// Get UTTypes for file import (all supported types)
-    static var importUTTypes: [UTType] {
-        return supportedFileTypes.flatMap { $0.utTypes }.removingDuplicates()
-    }
-    
-    // MARK: - File Type Detection
-    
-    /// Detect the file type from a URL
+
+    static func utTypes(for fileType: FileType) -> [UTType] { fileType.utTypes }
+    static var importUTTypes: [UTType] { supportedFileTypes.flatMap(\.utTypes).removingDuplicates() }
+
     static func detectFileType(from url: URL) -> FileType? {
         let fileExtension = url.pathExtension.lowercased()
-        
-        for fileType in supportedFileTypes {
-            if fileType.extensions.contains(fileExtension) {
-                return fileType
-            }
-        }
-        
-        return nil
+        return supportedFileTypes.first { $0.extensions.contains(fileExtension) }
     }
-    
-    // MARK: - Import Handling
-    
-    /// Handle an incoming file URL ("Open with" / share sheet / onOpenURL).
-    /// - Parameter url: The file URL to import
-    /// - Returns: True if the file was handled successfully
+
+    // MARK: - External file handling
+
+    /// Handles files delivered by the Files app, share sheet, document picker,
+    /// or drag and drop. P12/PFX files first open a password sheet instead of
+    /// being incorrectly attempted with an empty password.
     @discardableResult
     func handleFileURL(_ url: URL) -> Bool {
-        // SwiftUI's onOpenURL and the AppDelegate callback both fire for the
-        // same "Open with" event — skip the duplicate.
-        if let last = lastHandledURL, last == url, Date().timeIntervalSince(lastHandledDate) < 3 {
+        if let last = lastHandledURL,
+           last == url,
+           Date().timeIntervalSince(lastHandledDate) < 3 {
             return true
         }
         lastHandledURL = url
         lastHandledDate = Date()
 
-        guard let fileType = FileImporter.detectFileType(from: url) else {
-            print("Unsupported file type: \(url.pathExtension)")
+        guard let fileType = Self.detectFileType(from: url) else {
+            lastImportError = "Unsupported file type: .\(url.pathExtension.isEmpty ? "unknown" : url.pathExtension)"
             return false
         }
 
         lastImportError = nil
-
-        // The sandbox extension for an "Open with" URL is only guaranteed valid
-        // during the callback, so the copy must happen synchronously right here.
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
 
         do {
-            let localURL: URL
             switch fileType.contentType {
-            case "com.apple.itunes.ipa":
-                localURL = try StorageManager.shared.storeIPA(from: url)
             case "com.rsa.pkcs-12":
-                localURL = try StorageManager.shared.storeP12(from: url)
+                try prepareCertificateImport(from: url)
+            case "com.apple.itunes.ipa":
+                beginImport(localURL: try StorageManager.shared.storeIPA(from: url), contentType: fileType.contentType)
             case "com.apple.mobileprovision":
-                localURL = try StorageManager.shared.storeMobileProvision(from: url)
+                beginImport(localURL: try StorageManager.shared.storeMobileProvision(from: url), contentType: fileType.contentType)
             case "com.freesign.local-model":
-                localURL = try StorageManager.shared.storeLocalModel(from: url)
+                beginImport(localURL: try StorageManager.shared.storeLocalModel(from: url), contentType: fileType.contentType)
             default:
                 return false
             }
-
-            // Show the sandboxed copy in the progress sheet, not the external URL
-            // whose sandbox extension is about to expire.
-            currentFileURL = localURL
-
-            Task {
-                await MainActor.run { isImporting = true }
-                do {
-                    switch fileType.contentType {
-                    case "com.apple.itunes.ipa":
-                        try await importIPABackground(fromLocalURL: localURL)
-                    case "com.rsa.pkcs-12":
-                        try await importCertificateBackground(fromLocalURL: localURL)
-                    case "com.apple.mobileprovision":
-                        try await importProvisioningProfileBackground(fromLocalURL: localURL)
-                    case "com.freesign.local-model":
-                        try await importLocalModelBackground(fromLocalURL: localURL)
-                    default:
-                        break
-                    }
-                } catch {
-                    await MainActor.run {
-                        lastImportError = error.localizedDescription
-                        importProgress = "Import failed"
-                    }
-                }
-            }
             return true
         } catch {
-            lastImportError = error.localizedDescription
-            print("Failed to copy file to sandbox: \(error)")
+            lastImportError = "Failed to copy \(url.lastPathComponent): \(error.localizedDescription)"
             return false
         }
     }
-    
-    // MARK: - IPA Import
-    
-    private func importIPABackground(fromLocalURL url: URL) async throws {
-        await MainActor.run {
-            isImporting = true
-            importProgress = "Analyzing bundle…"
+
+    /// Queues a local P12/PFX selected from the Files tab. This follows the
+    /// same password and validation path as an external "Open with FreeSign".
+    func prepareCertificateImport(from url: URL) throws {
+        let localURL = try StorageManager.shared.storeP12(from: url)
+        pendingCertificateFileName = url.lastPathComponent
+        pendingCertificateURL = localURL
+        importProgress = "Enter the certificate password to continue."
+    }
+
+    func cancelPendingCertificateImport() {
+        if let url = pendingCertificateURL {
+            try? FileManager.default.removeItem(at: url)
         }
-        
-        defer {
-            Task { @MainActor in
-                isImporting = false
+        pendingCertificateURL = nil
+        pendingCertificateFileName = ""
+    }
+
+    /// Validates the copied certificate with the password supplied by the user
+    /// and stores only the identity metadata in the app database.
+    func importCertificate(fromLocalURL url: URL, password: String) {
+        pendingCertificateURL = nil
+        pendingCertificateFileName = ""
+        lastImportError = nil
+        currentFileURL = url
+        isImporting = true
+        importProgress = "Reading certificate…"
+
+        Task.detached(priority: .userInitiated) {
+            do {
+                let certInfo = try ZSignWrapper.certificateInfo(
+                    fromP12: url.path,
+                    password: password.isEmpty ? nil : password
+                )
+                let certificate = Self.makeCertificate(from: certInfo, localURL: url, password: password)
+                if !password.isEmpty,
+                   !await KeychainHelper.saveCertificatePassword(
+                        certificateID: certificate.id,
+                        password: password
+                   ) {
+                    throw ImportError.securePasswordStorageFailed
+                }
+                await MainActor.run {
+                    AppDataManager.shared.addCertificate(certificate)
+                    self.importProgress = "Certificate imported!"
+                    self.isImporting = false
+                }
+            } catch {
+                try? FileManager.default.removeItem(at: url)
+                await MainActor.run {
+                    self.lastImportError = "Failed to import certificate: \(error.localizedDescription)"
+                    self.importProgress = "Certificate import failed"
+                    self.isImporting = false
+                }
             }
         }
-        
+    }
+
+    // MARK: - Background imports
+
+    private func beginImport(localURL: URL, contentType: String) {
+        currentFileURL = localURL
+        isImporting = true
+
+        Task {
+            do {
+                switch contentType {
+                case "com.apple.itunes.ipa":
+                    try await importIPABackground(fromLocalURL: localURL)
+                case "com.apple.mobileprovision":
+                    try await importProvisioningProfileBackground(fromLocalURL: localURL)
+                case "com.freesign.local-model":
+                    try await importLocalModelBackground(fromLocalURL: localURL)
+                default:
+                    break
+                }
+            } catch {
+                await MainActor.run {
+                    lastImportError = error.localizedDescription
+                    importProgress = "Import failed"
+                    isImporting = false
+                }
+            }
+        }
+    }
+
+    private func importIPABackground(fromLocalURL url: URL) async throws {
+        await MainActor.run { importProgress = "Analyzing bundle…" }
+        defer { Task { @MainActor in isImporting = false } }
+
         do {
-            // Analyze the IPA
-            let meta = try IPAAnalyzer.shared.analyze(ipaPath: url.path)
-            
-            // Cache the icon
+            let metadata = try await Task.detached(priority: .userInitiated) {
+                try IPAAnalyzer.shared.analyze(ipaPath: url.path)
+            }.value
             let appID = UUID()
-            if let iconData = meta.iconData {
+            if let iconData = metadata.iconData {
                 StorageManager.shared.storeIcon(iconData, appID: appID)
             }
-            let iconPath = meta.iconData != nil
-                ? StorageManager.shared.iconsURL
-                    .appendingPathComponent(appID.uuidString + ".png").path
-                : nil
-            
-            // Build AppInfo model
+            let iconPath = metadata.iconData == nil
+                ? nil
+                : StorageManager.shared.iconsURL.appendingPathComponent("\(appID.uuidString).png").path
             let app = AppInfo(
                 id: appID,
-                name: meta.name,
-                bundleID: meta.bundleID,
-                version: meta.version,
-                buildNumber: meta.buildNumber,
-                minOSVersion: meta.minOSVersion,
+                name: metadata.name,
+                bundleID: metadata.bundleID,
+                version: metadata.version,
+                buildNumber: metadata.buildNumber,
+                minOSVersion: metadata.minOSVersion,
                 ipaPath: url.path,
                 iconPath: iconPath,
-                fileSize: meta.fileSize,
-                architectures: meta.architectures,
-                embeddedFrameworks: meta.embeddedFrameworks,
-                isEncrypted: meta.isEncrypted,
-                isSigned: meta.isSigned,
+                fileSize: metadata.fileSize,
+                architectures: metadata.architectures,
+                embeddedFrameworks: metadata.embeddedFrameworks,
+                isEncrypted: metadata.isEncrypted,
+                isSigned: metadata.isSigned,
                 isFavorite: false,
                 tags: [],
                 dateImported: Date(),
-                sourceURL: nil
+                sourceURL: nil,
+                lastSignedWith: nil,
+                lastSignedDate: nil
             )
-            
-            // Persist
             await MainActor.run {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    AppDataManager.shared.addImportedApp(app)
-                }
+                withAnimation(.easeOut(duration: 0.25)) { AppDataManager.shared.addImportedApp(app) }
                 importProgress = "Import complete!"
             }
         } catch {
-            // Clean up sandbox copy on failure
             try? FileManager.default.removeItem(at: url)
             throw error
         }
     }
-    
-    // MARK: - Certificate Import
-    
-    private func importCertificateBackground(fromLocalURL url: URL) async throws {
-        await MainActor.run {
-            isImporting = true
-            importProgress = "Reading certificate…"
-        }
-        
-        defer {
-            Task { @MainActor in
-                isImporting = false
-            }
-        }
-        
-        do {
-            // Extract certificate metadata
-            let certInfo = try ZSignWrapper.certificateInfo(fromP12: url.path, password: nil)
-            
-            // Build Certificate model
-            let cn = certInfo["commonName"] as? String
-                  ?? certInfo["subject"] as? String
-                  ?? url.deletingPathExtension().lastPathComponent
-            
-            let certType: CertType = cn.hasPrefix("Apple Development") || cn.contains("Developer") ? .development :
-                                  cn.hasPrefix("Apple Distribution") || cn.contains("Distribution") ? .distribution :
-                                  cn.contains("Enterprise") || cn.contains("In-House") ? .enterprise : .unknown
-            
-            let expiry = certInfo["expirationDate"] as? Date ?? Date().addingTimeInterval(365 * 24 * 3600)
-            let teamID = certInfo["teamID"] as? String ?? "Unknown"
-            let teamName = certInfo["orgName"] as? String ?? ""
-            let serial = certInfo["serialNumber"] as? String ?? ""
-            
-            let cert = Certificate(
-                id: UUID(),
-                name: cn,
-                teamName: teamName,
-                teamID: teamID,
-                serialNumber: serial,
-                certType: certType,
-                p12Path: url.path,
-                password: "",
-                provisioningProfiles: [],
-                expirationDate: expiry,
-                dateAdded: Date()
-            )
-            
-            await MainActor.run {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    AppDataManager.shared.addCertificate(cert)
-                }
-                importProgress = "Certificate imported!"
-            }
-        } catch {
-            // Clean up sandbox copy on failure
-            try? FileManager.default.removeItem(at: url)
-            throw error
-        }
-    }
-    
-    // MARK: - Provisioning Profile Import
-    
+
     private func importProvisioningProfileBackground(fromLocalURL url: URL) async throws {
-        await MainActor.run {
-            isImporting = true
-            importProgress = "Reading provisioning profile…"
-        }
-        
-        defer {
-            Task { @MainActor in
-                isImporting = false
-            }
-        }
-        
+        await MainActor.run { importProgress = "Reading provisioning profile…" }
+        defer { Task { @MainActor in isImporting = false } }
+
         do {
-            // Parse the provisioning profile
-            let profile = try ProvisioningProfileParser.parse(at: url.path)
-            
-            // If we have certificates, attach to the first one
-            if let firstCert = AppDataManager.shared.certificates.first {
-                await MainActor.run {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        AppDataManager.shared.addProfile(profile, toCertificate: firstCert.id)
-                    }
+            let profile = try await Task.detached(priority: .userInitiated) {
+                try ProvisioningProfileParser.parse(at: url.path)
+            }.value
+            await MainActor.run {
+                if let certificate = AppDataManager.shared.certificates.first(where: { !$0.isExpired })
+                    ?? AppDataManager.shared.certificates.first {
+                    AppDataManager.shared.addProfile(profile, toCertificate: certificate.id)
                     importProgress = "Provisioning profile imported!"
-                }
-            } else {
-                await MainActor.run {
-                    importProgress = "No certificates available. Profile will be attached when you import a certificate."
+                } else {
+                    lastImportError = "Import a .p12 certificate first, then add its provisioning profile."
+                    importProgress = "Provisioning profile needs a certificate"
+                    try? FileManager.default.removeItem(at: url)
                 }
             }
         } catch {
-            // Clean up sandbox copy on failure
             try? FileManager.default.removeItem(at: url)
             throw error
         }
     }
-    // MARK: - Local Model Import
-    
+
     private func importLocalModelBackground(fromLocalURL url: URL) async throws {
+        await MainActor.run { importProgress = "Importing model…" }
+        defer { Task { @MainActor in isImporting = false } }
+        guard StorageManager.shared.fileExists(at: url.path) else { throw ImportError.copyFailed }
         await MainActor.run {
-            isImporting = true
-            importProgress = "Importing model…"
+            importProgress = "Model imported — select it in Lab Assistant → Local Model provider."
         }
-        
-        defer {
-            Task { @MainActor in
-                isImporting = false
-            }
+    }
+
+    private static func makeCertificate(
+        from certInfo: [AnyHashable: Any],
+        localURL: URL,
+        password: String
+    ) -> Certificate {
+        let commonName = certInfo["commonName"] as? String
+            ?? certInfo["subject"] as? String
+            ?? localURL.deletingPathExtension().lastPathComponent
+        let certificateType: CertType
+        if commonName.hasPrefix("Apple Development") || commonName.contains("Developer") {
+            certificateType = .development
+        } else if commonName.hasPrefix("Apple Distribution") || commonName.contains("Distribution") {
+            certificateType = .distribution
+        } else if commonName.contains("Enterprise") || commonName.contains("In-House") {
+            certificateType = .enterprise
+        } else {
+            certificateType = .unknown
         }
-        
-        // The model file was already copied into the sandbox by StorageManager;
-        // model weights are opaque binaries, so there is nothing to analyze.
-        // Verify the copy exists, then surface it in the Files tab.
-        guard StorageManager.shared.fileExists(at: url.path) else {
-            throw ImportError.copyFailed
-        }
-        
-        await MainActor.run {
-            importProgress = "Model imported — pick it in Lab Assistant → Local Model provider."
-        }
+
+        return Certificate(
+            id: UUID(),
+            name: commonName,
+            teamName: certInfo["orgName"] as? String ?? "",
+            teamID: certInfo["teamID"] as? String ?? "Unknown",
+            serialNumber: certInfo["serialNumber"] as? String ?? "",
+            certType: certificateType,
+            p12Path: localURL.path,
+            password: "",
+            provisioningProfiles: [],
+            expirationDate: certInfo["expirationDate"] as? Date ?? Date().addingTimeInterval(365 * 24 * 60 * 60),
+            dateAdded: Date()
+        )
     }
 }
-
-// MARK: - File Type Model
 
 struct FileType {
     let name: String
@@ -383,31 +341,19 @@ struct FileType {
     let contentType: String
 }
 
-// MARK: - Import Errors
-
 enum ImportError: LocalizedError {
-    case notAnIPA
-    case notACertificate
-    case notAProvisioningProfile
     case unsupportedFileType
-    case fileAccessDenied
     case copyFailed
-    case analysisFailed
-    
+    case securePasswordStorageFailed
+
     var errorDescription: String? {
         switch self {
-        case .notAnIPA: return "The selected file is not a valid IPA archive."
-        case .notACertificate: return "The selected file is not a valid certificate (P12/PFX)."
-        case .notAProvisioningProfile: return "The selected file is not a valid provisioning profile."
         case .unsupportedFileType: return "This file type is not supported."
-        case .fileAccessDenied: return "Access to the file was denied. Please try again."
-        case .copyFailed: return "Failed to copy the file. Please check storage permissions."
-        case .analysisFailed: return "Failed to analyze the IPA file. It may be corrupted."
+        case .copyFailed: return "Failed to copy the file. Check available storage and try again."
+        case .securePasswordStorageFailed: return "The certificate password could not be saved securely in the iOS Keychain."
         }
     }
 }
-
-// MARK: - Array Extension for Removing Duplicates
 
 extension Array where Element: Hashable {
     func removingDuplicates() -> [Element] {

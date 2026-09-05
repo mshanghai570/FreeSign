@@ -20,10 +20,10 @@ final class LocalModelProvider: AIProvider {
         messages: [AIMessage],
         context: AIContext?
     ) async throws -> AsyncThrowingStream<String, Error> {
-        guard !configuration.endpointURL.isEmpty else {
+        guard !configuration.endpointURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return AsyncThrowingStream { continuation in
                 continuation.finish(throwing: AIError.providerError(
-                    "Local Model provider is missing an endpoint URL. Enter your local inference server's address, e.g. http://192.168.1.10:8080"
+                    "Local Model provider is missing an endpoint URL. Enter the local inference server address, for example http://192.168.1.10:8080."
                 ))
             }
         }
@@ -31,12 +31,11 @@ final class LocalModelProvider: AIProvider {
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    let request = try buildRequest(messages: messages, context: context)
-                    let data = try await ProviderHTTPClient.perform(request)
-
-                    let response = try ProviderHTTPClient.decode(OpenAIResponse.self, from: data)
-                    let text = response.choices.first?.message.content ?? ""
-
+                    let data = try await ProviderHTTPClient.perform(buildRequest(messages: messages))
+                    let response = try ProviderHTTPClient.decode(LocalOpenAIResponse.self, from: data)
+                    let text = response.choices.first?.message.content?
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    guard !text.isEmpty else { throw AIError.emptyResponse }
                     continuation.yield(text)
                     continuation.finish()
                 } catch {
@@ -46,70 +45,45 @@ final class LocalModelProvider: AIProvider {
         }
     }
 
-    private func buildRequest(messages: [AIMessage], context: AIContext?) throws -> URLRequest {
-        var apiMessages: [[String: Any]] = []
-
-        if let context = context {
-            let systemPrompt = """
-            You are a lab assistant for FreeSign, an iOS sideloading app.
-            Context: \(context.sourceView) — \(context.summary)
-            """
-            apiMessages.append(["role": "system", "content": systemPrompt])
-        }
-
-        for msg in messages {
-            apiMessages.append([
-                "role": msg.role.rawValue,
-                "content": msg.content
-            ])
-        }
-
-        // Prefer the explicit model name; fall back to the imported model file's
-        // name so the local server can resolve it (e.g. llama.cpp / Ollama aliases).
-        var modelValue = configuration.modelName
-        if modelValue.isEmpty, let path = configuration.localModelPath {
-            modelValue = URL(fileURLWithPath: path).lastPathComponent
+    private func buildRequest(messages: [AIMessage]) throws -> URLRequest {
+        var model = configuration.modelName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if model.isEmpty, let localModelPath = configuration.localModelPath {
+            model = URL(fileURLWithPath: localModelPath).lastPathComponent
         }
 
         var body: [String: Any] = [
-            "messages": apiMessages,
+            "messages": AIProviderMessageFormatter.openAIChatMessages(from: messages),
             "stream": false
         ]
-        if !modelValue.isEmpty {
-            body["model"] = modelValue
-        }
+        if !model.isEmpty { body["model"] = model }
 
-        // Local inference servers expose the OpenAI-compatible API under /v1.
-        // Accept a base URL (http://host:8080), one that already includes /v1
-        // (Ollama, http://host:11434/v1), or one with a trailing slash — without
-        // producing /v1/v1/... (which would 404 and surface as an error).
-        var baseURL = configuration.endpointURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        if baseURL.hasSuffix("/") { baseURL.removeLast() }
-        let path: String
-        if baseURL.hasSuffix("/v1") {
-            path = "/chat/completions"
+        var base = configuration.endpointURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        while base.hasSuffix("/") { base.removeLast() }
+        let endpoint: String
+        if base.hasSuffix("/chat/completions") {
+            endpoint = base
+        } else if base.hasSuffix("/v1") {
+            endpoint = ProviderHTTPClient.endpoint(base, path: "/chat/completions")
         } else {
-            path = "/v1/chat/completions"
+            endpoint = ProviderHTTPClient.endpoint(base, path: "/v1/chat/completions")
         }
-        let endpoint = ProviderHTTPClient.endpoint(baseURL, path: path)
 
+        var headers = ["Content-Type": "application/json"]
+        if let apiKey = apiKey?.trimmingCharacters(in: .whitespacesAndNewlines), !apiKey.isEmpty {
+            headers["Authorization"] = "Bearer \(apiKey)"
+        }
         return try ProviderHTTPClient.makeRequest(
             urlString: endpoint,
-            headers: [
-                "Content-Type": "application/json",
-                "Authorization": "Bearer \(apiKey ?? "")"
-            ],
+            headers: headers,
             body: body,
             timeout: 180
         )
     }
 }
 
-private struct OpenAIResponse: Codable {
+private struct LocalOpenAIResponse: Codable {
     struct Choice: Codable {
-        struct Message: Codable {
-            let content: String
-        }
+        struct Message: Codable { let content: String? }
         let message: Message
     }
     let choices: [Choice]

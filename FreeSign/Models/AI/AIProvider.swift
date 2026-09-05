@@ -38,7 +38,7 @@ enum AIProviderType: String, Codable, CaseIterable, Identifiable {
     var defaultEndpoint: String {
         switch self {
         case .openAICompatible: return "https://api.openai.com/v1"
-        case .gemini: return "https://generativelanguage.googleapis.com/v1"
+        case .gemini: return "https://generativelanguage.googleapis.com/v1beta"
         case .anthropic: return "https://api.anthropic.com/v1"
         case .localModel: return "http://localhost:8080"
         case .custom: return ""
@@ -47,9 +47,11 @@ enum AIProviderType: String, Codable, CaseIterable, Identifiable {
     
     var defaultModel: String {
         switch self {
-        case .openAICompatible: return "gpt-4"
-        case .gemini: return "gemini-pro"
-        case .anthropic: return "claude-3-sonnet-20240229"
+        // These defaults are editable in Lab Assistant. They use current,
+        // stable text-capable model identifiers rather than retired aliases.
+        case .openAICompatible: return "gpt-5.6-luna"
+        case .gemini: return "gemini-3.8-flash"
+        case .anthropic: return "claude-sonnet-5"
         case .localModel: return ""
         case .custom: return ""
         }

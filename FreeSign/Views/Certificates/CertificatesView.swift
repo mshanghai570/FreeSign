@@ -73,14 +73,13 @@ struct CertificatesView: View {
 
     @ViewBuilder
     private var certificateContent: some View {
-        if embeddedInSettings {
-            certificatesContent
-        } else {
-            certificatesContent
-                .appNavigationTitle("Certificates")
-                .appNavigationStyle()
-                .toolbar { toolbarContent }
-        }
+        // This view is pushed from Settings as well as presented directly.
+        // Keep its title and toolbar in both cases so an existing certificate
+        // never hides the Import P12 / Add Profile controls.
+        certificatesContent
+            .appNavigationTitle("Certificates")
+            .appNavigationStyle()
+            .toolbar { toolbarContent }
     }
 
     private var certificatesContent: some View {
@@ -132,6 +131,7 @@ struct CertificatesView: View {
                 } label: {
                     Label("Import P12 Certificate", systemImage: "key.fill")
                 }
+                .accessibilityIdentifier("certificates.importP12")
                 if !dataManager.certificates.isEmpty {
                     Button {
                         selectedCertID = dataManager.certificates.first?.id
@@ -139,6 +139,7 @@ struct CertificatesView: View {
                     } label: {
                         Label("Add Provisioning Profile", systemImage: "doc.text.badge.plus")
                     }
+                    .accessibilityIdentifier("certificates.importProfile")
                 }
             } label: {
                 Image(systemName: "plus")
@@ -227,72 +228,9 @@ struct CertificatesView: View {
     }
 
     private func importP12(fromLocalURL url: URL, password: String) {
-        isImporting  = true
-        importStatus = "Reading certificate…"
-
-        Task.detached(priority: .userInitiated) {
-            do {
-                // Extract certificate metadata via ZSign Security bridge.
-                // Imported from ObjC as `throws -> [AnyHashable: Any]` (non-optional:
-                // nil return + error becomes a thrown NSError).
-                let certInfo = try ZSignWrapper.certificateInfo(fromP12: url.path,
-                                                                password: password.isEmpty ? nil : password)
-
-                // Build Certificate model
-                let cn        = certInfo["commonName"] as? String
-                           ?? certInfo["subject"]      as? String
-                           ?? url.deletingPathExtension().lastPathComponent
-
-                // Determine cert type from CN prefix
-                let certType: CertType
-                if cn.hasPrefix("Apple Development") || cn.contains("Developer") {
-                    certType = .development
-                } else if cn.hasPrefix("Apple Distribution") || cn.contains("Distribution") {
-                    certType = .distribution
-                } else if cn.contains("Enterprise") || cn.contains("In-House") {
-                    certType = .enterprise
-                } else {
-                    certType = .unknown
-                }
-
-                // If we can't get expiry from the p12, default to 1 year
-                let expiry = certInfo["expirationDate"] as? Date
-                          ?? Date().addingTimeInterval(365 * 24 * 3600)
-
-                let teamID   = certInfo["teamID"]   as? String ?? "Unknown"
-                let teamName = certInfo["orgName"]   as? String ?? ""
-                let serial   = certInfo["serialNumber"] as? String ?? ""
-
-                let cert = Certificate(
-                    id:                   UUID(),
-                    name:                 cn,
-                    teamName:             teamName,
-                    teamID:               teamID,
-                    serialNumber:         serial,
-                    certType:             certType,
-                    p12Path:              url.path,
-                    password:             password,
-                    provisioningProfiles: [],
-                    expirationDate:       expiry,
-                    dateAdded:            Date()
-                )
-
-                await MainActor.run {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        AppDataManager.shared.addCertificate(cert)
-                    }
-                    isImporting = false
-                }
-
-            } catch {
-                try? FileManager.default.removeItem(at: url)
-                
-                await MainActor.run {
-                    isImporting = false
-                    showError("Failed to import certificate: \(error.localizedDescription)")
-                }
-            }
-        }
+        // All P12/PFX routes use FileImporter so certificate passphrases are
+        // handled consistently and stored in Keychain rather than metadata.
+        FileImporter.shared.importCertificate(fromLocalURL: url, password: password)
     }
 
     // MARK: - Provisioning Profile Import
@@ -573,8 +511,8 @@ struct P12PasswordEntryView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        dismiss()
                         onCancel()
+                        dismiss()
                     }
                     .foregroundColor(AppColors.secondaryText)
                 }
@@ -591,8 +529,8 @@ struct P12PasswordEntryView: View {
 
     private func importAction() {
         let pw = password
-        dismiss()
         onImport(pw)
+        dismiss()
     }
 }
 

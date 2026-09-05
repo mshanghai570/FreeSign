@@ -8,7 +8,7 @@ import Combine
 
 struct FilesView: View {
     @StateObject private var viewModel = FilesViewModel()
-    @StateObject private var theme = ThemeManager.shared
+    @ObservedObject private var theme = ThemeManager.shared
     @State private var plistFileURL: URL?
     @State private var hexEditorFileURL: URL?
     @State private var textEditorFileURL: URL?
@@ -197,7 +197,11 @@ struct FilesView: View {
         }
 
         ToolbarItem(placement: .navigationBarTrailing) {
-            TabAssistantButton(sourceView: "Files", summary: filesAssistantSummary)
+            TabAssistantButton(
+                sourceView: "Files",
+                summary: filesAssistantSummary,
+                details: filesAssistantDetails
+            )
         }
         
         // Edit mode toolbar
@@ -255,6 +259,18 @@ struct FilesView: View {
         return "Files tab: viewing \"\(folder)\" with \(total) item(s) "
              + "(\(models) model file(s), \(ipas) IPA(s))."
     }
+
+    private var filesAssistantDetails: [String: Any] {
+        [
+            "currentFolder": viewModel.currentDirectory.lastPathComponent,
+            "searchQuery": viewModel.searchText,
+            "filter": viewModel.filterCategory.rawValue,
+            "sort": "\(viewModel.sortOption.rawValue), \(viewModel.sortAscending ? "ascending" : "descending")",
+            "visibleFiles": viewModel.filteredFiles.prefix(30).map { file in
+                "\(file.name) [\(file.fileTypeDisplayName), \(file.formattedSize)]"
+            }
+        ]
+    }
     
     // MARK: - File Counts by Category
     
@@ -299,6 +315,12 @@ struct FilesView: View {
                         },
                         onImportIPA: { file in
                             importIPAToLibrary(file)
+                        },
+                        onImportCertificate: { file in
+                            importCertificate(file)
+                        },
+                        onImportProvisioningProfile: { file in
+                            importProvisioningProfile(file)
                         },
                         onOpenInEditor: { file in
                             // Open in appropriate editor
@@ -437,6 +459,20 @@ struct FilesView: View {
         // Import IPA to library - this would integrate with the existing library system
         print("Importing IPA to library: \(file.name)")
         // This would use the existing AppDataManager to add the IPA
+    }
+
+    /// Local P12/PFX files use the same password-first import route as Files.app
+    /// sharing, rather than attempting a Quick Look preview of a certificate.
+    private func importCertificate(_ file: FileItem) {
+        do {
+            try FileImporter.shared.prepareCertificateImport(from: file.url)
+        } catch {
+            FileImporter.shared.lastImportError = "Failed to prepare \(file.name): \(error.localizedDescription)"
+        }
+    }
+
+    private func importProvisioningProfile(_ file: FileItem) {
+        guard FileImporter.shared.handleFileURL(file.url) else { return }
     }
     
     private func shareSelectedFiles() {

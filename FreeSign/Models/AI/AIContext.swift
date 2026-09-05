@@ -1,5 +1,22 @@
 import Foundation
 
+private func renderAIContextValue(_ value: Any) -> String {
+    switch value {
+    case let value as String:
+        return value
+    case let value as [String]:
+        return value.joined(separator: ", ")
+    case let value as [String: String]:
+        return value.keys.sorted().map { "\($0): \(value[$0] ?? "")" }.joined(separator: "; ")
+    case let value as [String: Any]:
+        return value.keys.sorted().map { "\($0): \(renderAIContextValue(value[$0] ?? ""))" }.joined(separator: "; ")
+    case let value as [Any]:
+        return value.map(renderAIContextValue).joined(separator: ", ")
+    default:
+        return String(describing: value)
+    }
+}
+
 protocol AIContext: Codable {
     var sourceView: String { get }
     var action: AIAction { get }
@@ -10,6 +27,20 @@ protocol AIContext: Codable {
 extension AIContext {
     var userFacingTitle: String {
         "\(action.displayName) — \(sourceView)"
+    }
+
+    /// Converts the context to a stable, size-bounded description for provider
+    /// prompts. This avoids relying on `Dictionary`'s unstable order and keeps a
+    /// large editor/file snapshot from consuming the model context window.
+    var promptPayloadDescription: String {
+        let lines = payload.keys.sorted().compactMap { key -> String? in
+            guard let value = payload[key] else { return nil }
+            let rendered = renderAIContextValue(value)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !rendered.isEmpty else { return nil }
+            return "- \(key): \(String(rendered.prefix(1_200)))"
+        }
+        return String(lines.joined(separator: "\n").prefix(8_000))
     }
 }
 

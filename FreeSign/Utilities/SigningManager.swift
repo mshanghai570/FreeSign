@@ -52,7 +52,11 @@ class SigningManager: ObservableObject {
 
             let certPath = certificate.p12Path
             let provPath = certificate.provisioningProfiles.first?.path
-            let password = certificate.password.isEmpty ? nil : certificate.password
+            // New imports keep the P12 passphrase in the Keychain. The stored
+            // model fallback preserves signing for pre-Keychain certificate
+            // records until the user reimports them.
+            let protectedPassword = KeychainHelper.loadCertificatePasswordSync(certificateID: certificate.id)
+            let password = protectedPassword ?? (certificate.password.isEmpty ? nil : certificate.password)
             let bundleId = options.appIdentifier?.isEmpty == false ? options.appIdentifier : nil
             let bundleName = options.appName?.isEmpty == false ? options.appName : nil
             let bundleVersion = options.appVersion?.isEmpty == false ? options.appVersion : nil
