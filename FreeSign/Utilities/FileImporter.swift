@@ -168,12 +168,14 @@ final class FileImporter: ObservableObject {
                     password: password.isEmpty ? nil : password
                 )
                 let certificate = Self.makeCertificate(from: certInfo, localURL: url, password: password)
-                if !password.isEmpty,
-                   !await KeychainHelper.saveCertificatePassword(
+                if !password.isEmpty {
+                    let saved = await KeychainHelper.saveCertificatePassword(
                         certificateID: certificate.id,
                         password: password
-                   ) {
-                    throw ImportError.securePasswordStorageFailed
+                    )
+                    if !saved {
+                        throw ImportError.securePasswordStorageFailed
+                    }
                 }
                 await MainActor.run {
                     AppDataManager.shared.addCertificate(certificate)
