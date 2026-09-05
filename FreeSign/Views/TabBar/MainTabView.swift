@@ -1,5 +1,29 @@
 import SwiftUI
 
+enum AppTab: String, CaseIterable, Codable {
+    case library, sources, apps, files, settings
+
+    var title: String {
+        switch self {
+        case .library: return "Library"
+        case .sources: return "Sources"
+        case .apps: return "Apps"
+        case .files: return "Files"
+        case .settings: return "Settings"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .library: return "square.on.square"
+        case .sources: return "tray.and.arrow.down"
+        case .apps: return "square.grid.2x2"
+        case .files: return "folder"
+        case .settings: return "gearshape"
+        }
+    }
+}
+
 struct MainTabView: View {
     @ObservedObject private var theme = ThemeManager.shared
     @ObservedObject private var fileImporter = FileImporter.shared

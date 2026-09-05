@@ -835,7 +835,7 @@ struct ProviderEditView: View {
 struct QuickAPIKeyInputView: View {
     let onSave: (String, AIProviderType, String) async -> Bool
     
-    @Environment(\dismiss) var dismiss
+    @Environment(\.dismiss) var dismiss
     @State private var providerName = ""
     @State private var providerType: AIProviderType = .openAICompatible
     @State private var apiKey = ""
