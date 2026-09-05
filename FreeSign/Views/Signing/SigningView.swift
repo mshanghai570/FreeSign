@@ -97,7 +97,7 @@ struct SigningView: View {
 
     private var signingAssistantSummary: String {
         let certs = dataManager.certificates.count
-        let certName = selectedCertificate?.commonName ?? "None"
+        let certName = selectedCertificate?.name ?? "None"
         let tweaksCount = DylibManager.shared.availableDylibs.count
         return "Signing view: \(app.name) (bundle: \(app.bundleID)), "
              + "\(certs) certificate(s) available, selected: \(certName), "
