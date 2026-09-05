@@ -45,10 +45,12 @@ struct SigningOptions: Codable {
 
     // MARK: - Post-Signing
 
-    /// Attempt installation via itms-services:// after signing completes.
+    /// Open the system export sheet after signing. A receiving sideloading app
+    /// such as AltStore or SideStore performs the actual installation.
     var installAfterSigning: Bool = false
 
-    /// Open a share sheet so the user can AirDrop / send the signed IPA.
+    /// Legacy preference retained for existing installs; it also opens the
+    /// system export sheet after signing.
     var shareAfterSigning: Bool = false
 
     // MARK: - Custom .plist Entries

@@ -23,13 +23,13 @@ final class LocalModelProvider: AIProvider {
         guard !configuration.endpointURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return AsyncThrowingStream { continuation in
                 continuation.finish(throwing: AIError.providerError(
-                    "Local Model provider is missing an endpoint URL. Enter the local inference server address, for example http://192.168.1.10:8080."
+                    "Local Model provider is missing an endpoint URL. Enter an HTTPS OpenAI-compatible local inference server address."
                 ))
             }
         }
 
         return AsyncThrowingStream { continuation in
-            Task {
+            let task = Task {
                 do {
                     let data = try await ProviderHTTPClient.perform(buildRequest(messages: messages))
                     let response = try ProviderHTTPClient.decode(LocalOpenAIResponse.self, from: data)
@@ -42,6 +42,7 @@ final class LocalModelProvider: AIProvider {
                     continuation.finish(throwing: error)
                 }
             }
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 

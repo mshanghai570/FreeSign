@@ -5,6 +5,7 @@ struct SettingsView: View {
     @ObservedObject private var theme = ThemeManager.shared
     @ObservedObject private var settings = Settings.shared
     @State private var showCleanupAlert = false
+    @State private var showResetAlert = false
     
     var body: some View {
         ScrollView {
@@ -71,6 +72,14 @@ struct SettingsView: View {
             }
         } message: {
             Text("This will remove all temporary extraction files. This action cannot be undone.")
+        }
+        .alert("Reset All Settings?", isPresented: $showResetAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset and Erase AI Data", role: .destructive) {
+                resetAllSettings()
+            }
+        } message: {
+            Text("This restores FreeSign preferences and permanently removes AI provider configurations, API keys, and saved assistant conversations. Imported IPAs and certificates are not deleted.")
         }
     }
     
@@ -523,7 +532,7 @@ struct SettingsView: View {
                         .padding(.leading, 16)
 
                     Button(action: {
-                        resetAllSettings()
+                        showResetAlert = true
                     }) {
                         SettingsRow(
                             icon: "arrow.clockwise",
@@ -763,6 +772,9 @@ struct SettingsView: View {
         
         // Reset app settings
         settings.resetToDefaults()
+        Task {
+            _ = await AISettings.shared.eraseAllData()
+        }
         
         print("All settings reset to defaults")
     }

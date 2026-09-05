@@ -36,6 +36,11 @@ struct SigningView: View {
     @State private var isImagePickerPresenting = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var entitlementsFile: URL?
+    @State private var signedIPAURL: URL?
+    @State private var isExportSheetPresented = false
+    @State private var isShowingSigningCompletion = false
+    @State private var signingErrorMessage: String?
+    @State private var isShowingSigningError = false
 
     // MARK: - Computed
 
@@ -93,7 +98,7 @@ struct SigningView: View {
     private var signingAssistantSummary: String {
         let certs = dataManager.certificates.count
         let certName = selectedCertificate?.commonName ?? "None"
-        let tweaksCount = signingManager.availableTweaks.count
+        let tweaksCount = DylibManager.shared.availableDylibs.count
         return "Signing view: \(app.name) (bundle: \(app.bundleID)), "
              + "\(certs) certificate(s) available, selected: \(certName), "
              + "\(tweaksCount) tweak(s) available."
@@ -173,6 +178,26 @@ struct SigningView: View {
             if signingManager.isSigning {
                 signingOverlay
             }
+        }
+        .sheet(isPresented: $isExportSheetPresented) {
+            if let signedIPAURL {
+                ActivityShareSheet(items: [signedIPAURL])
+            }
+        }
+        .alert("Signing Complete", isPresented: $isShowingSigningCompletion) {
+            Button("Export IPA") {
+                isExportSheetPresented = true
+            }
+            Button("Done", role: .cancel) {
+                dismiss()
+            }
+        } message: {
+            Text("The signed IPA was saved in FreeSign’s Documents/Signed folder. Export it to AltStore, SideStore, Files, or another sideloading tool to install it.")
+        }
+        .alert("Signing Failed", isPresented: $isShowingSigningError, presenting: signingErrorMessage) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { message in
+            Text(message)
         }
         .sheet(isPresented: $showCertPicker) {
             CertificatePickerView(selectedIndex: $selectedCertIndex)
@@ -634,9 +659,25 @@ struct SigningView: View {
                 .padding(.horizontal, 4)
 
             VStack(spacing: 1) {
-                SimpleToggleRow(icon: "arrow.down.circle", title: "Install After Signing", isOn: $temporaryOptions.installAfterSigning)
+                SimpleToggleRow(icon: "square.and.arrow.up", title: "Open Export Sheet After Signing", isOn: $temporaryOptions.installAfterSigning)
                 AppDivider(leadingPadding: 52)
-                SimpleToggleRow(icon: "square.and.arrow.up", title: "Share After Signing", isOn: $temporaryOptions.shareAfterSigning)
+                HStack(spacing: 14) {
+                    Image(systemName: "tray.and.arrow.down")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppColors.secondaryText)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Signed IPA Storage")
+                            .font(AppFont.body)
+                            .foregroundColor(AppColors.primaryText)
+                        Text("Every completed IPA is saved to Documents/Signed.")
+                            .font(AppFont.small)
+                            .foregroundColor(AppColors.secondaryText)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
             }
             .background(AppColors.surface)
             .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -682,8 +723,8 @@ struct SigningView: View {
             }
         }
         .appPrimaryButton()
-        .disabled(signingManager.isSigning || selectedCertificate == nil)
-        .opacity((signingManager.isSigning || selectedCertificate == nil) ? 0.5 : 1.0)
+        .disabled(signingManager.isSigning || (selectedCertificate == nil && !temporaryOptions.isAdhoc))
+        .opacity((signingManager.isSigning || (selectedCertificate == nil && !temporaryOptions.isAdhoc)) ? 0.5 : 1.0)
         .padding(.top, 8)
         .offset(y: animateContent ? 0 : 20)
         .opacity(animateContent ? 1 : 0)
@@ -737,13 +778,16 @@ struct SigningView: View {
     // MARK: - Start Signing
 
     private func startSigning() {
-        guard let cert = selectedCertificate else { return }
+        guard selectedCertificate != nil || temporaryOptions.isAdhoc else { return }
 
         // Build SigningOptions from the temporary Options + global dictionary rules
         let signingOpts = SigningOptions(
             appName: temporaryOptions.appName,
             appIdentifier: effectiveBundleID,
             appVersion: temporaryOptions.appVersion,
+            minOSVersion: temporaryOptions.minimumAppRequirement == .default
+                ? nil
+                : temporaryOptions.minimumAppRequirement.rawValue,
             isAdhoc: temporaryOptions.isAdhoc,
             forceResign: temporaryOptions.forceResign,
             entitlementsPath: entitlementsFile?.path,
@@ -759,13 +803,18 @@ struct SigningView: View {
             customPlistEntries: []
         )
 
-        signingManager.signPackage(app, certificate: cert, options: signingOpts, iconOverride: appIcon?.pngData()) { result in
+        signingManager.signPackage(app, certificate: selectedCertificate, options: signingOpts, iconOverride: appIcon?.pngData()) { result in
             switch result {
             case .success(let path):
-                print("✅ Signed: \(path)")
-                dismiss()
+                signedIPAURL = URL(fileURLWithPath: path)
+                if signingOpts.installAfterSigning || signingOpts.shareAfterSigning {
+                    isExportSheetPresented = true
+                } else {
+                    isShowingSigningCompletion = true
+                }
             case .failure(let error):
-                print("❌ Error: \(error)")
+                signingErrorMessage = error.localizedDescription
+                isShowingSigningError = true
             }
         }
     }

@@ -85,6 +85,7 @@ struct TabAssistantView: View {
     @State private var messages: [AIMessage] = []
     @State private var inputText = ""
     @State private var isGenerating = false
+    @State private var requestTask: Task<Void, Never>?
 
     private let quickActions: [AIAction] = [.explain, .summarize, .analyze, .suggest, .findIssues]
 
@@ -137,7 +138,10 @@ struct TabAssistantView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        requestTask?.cancel()
+                        dismiss()
+                    }
                         .foregroundColor(AppColors.secondaryText)
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -154,6 +158,9 @@ struct TabAssistantView: View {
         }
         .task(id: sourceView) {
             messages = AIService.shared.messages(for: sourceView)
+        }
+        .onDisappear {
+            requestTask?.cancel()
         }
     }
 
@@ -337,7 +344,8 @@ struct TabAssistantView: View {
     }
 
     private func performRequest(action: AIAction, question: String?, history: [AIMessage]) {
-        Task {
+        requestTask?.cancel()
+        requestTask = Task {
             do {
                 let context = TabContext(
                     sourceView: sourceView,
@@ -352,6 +360,8 @@ struct TabAssistantView: View {
                     history: history
                 )
                 try await consume(stream)
+            } catch is CancellationError {
+                await MainActor.run { isGenerating = false }
             } catch {
                 await fail(with: error)
             }

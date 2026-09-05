@@ -12,6 +12,7 @@ struct AssistantSettingsView: View {
     @State private var showingQuickAPIKeyInput = false
     @State private var testingProviderID: UUID?
     @State private var providerTestMessage: String?
+    @State private var showingEraseAIDataConfirmation = false
 
     var body: some View {
         ScrollView {
@@ -23,9 +24,13 @@ struct AssistantSettingsView: View {
                 // Direct API Key Input Section
                 directAPIKeySection
 
+                privacySection
+
                 providersList
 
                 addProviderButton
+
+                eraseAIDataSection
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
@@ -59,16 +64,12 @@ struct AssistantSettingsView: View {
                 apiKey: $apiKeyInput,
                 statusMessage: $apiKeyStatusMessage,
                 onSave: { key in
-                    guard let provider = selectedProviderForAPIKey else { return }
-                    Task {
-                        let success = await KeychainHelper.save(providerID: provider.id, apiKey: key)
-                        await MainActor.run {
-                            apiKeyStatusMessage = success ? "API key saved." : "Failed to save API key."
-                            if success {
-                                AIService.shared.refreshActiveProvider()
-                            }
-                        }
+                    guard let provider = selectedProviderForAPIKey else { return false }
+                    let success = await KeychainHelper.save(providerID: provider.id, apiKey: key)
+                    if success {
+                        AIService.shared.refreshActiveProvider()
                     }
+                    return success
                 }
             )
         }
@@ -111,6 +112,20 @@ struct AssistantSettingsView: View {
             } message: {
                 Text(providerTestMessage ?? "")
             }
+            .confirmationDialog(
+                "Erase AI Data?",
+                isPresented: $showingEraseAIDataConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Erase API Keys, Providers, and Conversations", role: .destructive) {
+                    Task {
+                        _ = await AISettings.shared.eraseAllData()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This permanently deletes all FreeSign AI provider configurations, every AI API key saved in this app’s Keychain service, and all saved assistant conversations. This cannot be undone.")
+            }
     }
 
     private var inactiveBanner: some View {
@@ -135,6 +150,37 @@ struct AssistantSettingsView: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(AppColors.warning.opacity(0.4), lineWidth: 1)
         )
+    }
+
+    private var privacySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Privacy")
+                .font(AppFont.title)
+                .foregroundColor(AppColors.primaryText)
+                .padding(.horizontal, 4)
+
+            Toggle(isOn: Binding(
+                get: { AISettings.shared.sendContextByDefault },
+                set: { enabled in
+                    AISettings.shared.sendContextByDefault = enabled
+                    AISettings.shared.save()
+                }
+            )) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Share Current-Screen Context")
+                        .font(AppFont.body)
+                        .foregroundColor(AppColors.primaryText)
+                    Text("When enabled, app, file, source, certificate, and visible screen details may be sent to the selected AI provider. Disabled by default.")
+                        .font(AppFont.small)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+            }
+            .tint(AppColors.accent)
+            .padding(14)
+            .background(AppColors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.cardBorder, lineWidth: 1))
+        }
     }
 
     private var directAPIKeySection: some View {
@@ -234,16 +280,14 @@ struct AssistantSettingsView: View {
                         endpointURL: providerType.defaultEndpoint,
                         modelName: providerType.defaultModel
                     )
-                    
-                    Task {
-                        let success = await KeychainHelper.save(providerID: config.id, apiKey: apiKey)
-                        if success {
-                            AISettings.shared.addProvider(config)
-                            AISettings.shared.setActiveProvider(id: config.id)
-                            AISettings.shared.save()
-                            AIService.shared.refreshActiveProvider()
-                        }
+                    let success = await KeychainHelper.save(providerID: config.id, apiKey: apiKey)
+                    if success {
+                        AISettings.shared.addProvider(config)
+                        AISettings.shared.setActiveProvider(id: config.id)
+                        AISettings.shared.save()
+                        AIService.shared.refreshActiveProvider()
                     }
+                    return success
                 }
             )
         }
@@ -372,7 +416,11 @@ struct AssistantSettingsView: View {
                     }
 
                     Button {
-                        AISettings.shared.setActiveProvider(id: config.id)
+                        if config.isActive {
+                            AISettings.shared.deactivateProvider()
+                        } else {
+                            AISettings.shared.setActiveProvider(id: config.id)
+                        }
                         AIService.shared.refreshActiveProvider()
                     } label: {
                         Label(config.isActive ? "Deactivate" : "Activate", systemImage: config.isActive ? "xmark.circle" : "checkmark.circle")
@@ -387,9 +435,13 @@ struct AssistantSettingsView: View {
 
                     Button(role: .destructive) {
                         Task {
-                            await KeychainHelper.delete(providerID: config.id)
-                            AISettings.shared.deleteProvider(id: config.id)
-                            AIService.shared.refreshActiveProvider()
+                            let deleted = await KeychainHelper.delete(providerID: config.id)
+                            if deleted {
+                                AISettings.shared.deleteProvider(id: config.id)
+                                AIService.shared.refreshActiveProvider()
+                            } else {
+                                providerTestMessage = "Could not remove the API key for \(config.name). The provider was kept unchanged."
+                            }
                         }
                     } label: {
                         Label("Delete", systemImage: "trash")
@@ -461,16 +513,31 @@ struct AssistantSettingsView: View {
         .buttonStyle(PlainButtonStyle())
         .contentShape(Rectangle())
     }
+
+    private var eraseAIDataSection: some View {
+        Button(role: .destructive) {
+            showingEraseAIDataConfirmation = true
+        } label: {
+            Label("Erase AI Data", systemImage: "trash")
+                .font(AppFont.body.bold())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+        }
+        .buttonStyle(.bordered)
+        .tint(AppColors.destructive)
+        .accessibilityHint("Permanently removes saved AI keys, providers, and conversations")
+    }
 }
 
 struct APIKeyInputView: View {
     let provider: AIProviderConfiguration?
     @Binding var apiKey: String
     @Binding var statusMessage: String?
-    let onSave: (String) -> Void
+    let onSave: (String) async -> Bool
 
     @Environment(\.dismiss) var dismiss
     @State private var isSecure = true
+    @State private var isSaving = false
 
     var body: some View {
         NavigationStack {
@@ -523,10 +590,15 @@ struct APIKeyInputView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        onSave(apiKey)
-                        dismiss()
+                        Task {
+                            isSaving = true
+                            let saved = await onSave(apiKey)
+                            isSaving = false
+                            statusMessage = saved ? "API key saved." : "Failed to save API key. Check device keychain access and try again."
+                            if saved { dismiss() }
+                        }
                     }
-                    .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
                     .foregroundColor(AppColors.accent)
                 }
             }
@@ -548,6 +620,8 @@ struct ProviderEditView: View {
     @State private var isSecureAPIKey = true
     @State private var selectedModelPath: String?
     @State private var showingModelImporter = false
+    @State private var isSavingProvider = false
+    @State private var providerSaveError: String?
 
     init(
         provider: AIProviderConfiguration?,
@@ -586,7 +660,7 @@ struct ProviderEditView: View {
                             .autocorrectionDisabled()
                         TextField("Model Name", text: $modelName)
                         if providerType == .localModel {
-                            Text("Point this at your local inference server, e.g. http://192.168.1.10:8080 for a llama.cpp server or Ollama.")
+                            Text("Point this at an HTTPS-enabled OpenAI-compatible local inference server, e.g. https://inference.local:8080. FreeSign does not send API requests over cleartext HTTP.")
                                 .font(AppFont.caption)
                                 .foregroundColor(AppColors.secondaryText)
                         }
@@ -680,15 +754,26 @@ struct ProviderEditView: View {
                     )
                     let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
                     Task {
+                        isSavingProvider = true
                         if !trimmedKey.isEmpty {
-                            await KeychainHelper.save(providerID: config.id, apiKey: trimmedKey)
+                            guard await KeychainHelper.save(providerID: config.id, apiKey: trimmedKey) else {
+                                providerSaveError = "The API key could not be saved in the iOS Keychain. Provider settings were not changed."
+                                isSavingProvider = false
+                                return
+                            }
                         }
                         onSave(config)
                         AIService.shared.refreshActiveProvider()
+                        isSavingProvider = false
                         dismiss()
                     }
                 }
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSavingProvider)
+                if let providerSaveError {
+                    Text(providerSaveError)
+                        .font(AppFont.caption)
+                        .foregroundColor(AppColors.destructive)
+                }
                 }
             }
             .navigationTitle(provider == nil ? "New Provider" : "Edit Provider")
@@ -748,7 +833,7 @@ struct ProviderEditView: View {
 }
 
 struct QuickAPIKeyInputView: View {
-    let onSave: (String, AIProviderType, String) -> Void
+    let onSave: (String, AIProviderType, String) async -> Bool
     
     @Environment(\dismiss) var dismiss
     @State private var providerName = ""
@@ -756,6 +841,7 @@ struct QuickAPIKeyInputView: View {
     @State private var apiKey = ""
     @State private var isSecure = true
     @State private var isSaving = false
+    @State private var saveError: String?
     
     var body: some View {
         NavigationStack {
@@ -799,8 +885,15 @@ struct QuickAPIKeyInputView: View {
                 Section {
                     Button {
                         isSaving = true
-                        onSave(providerName, providerType, apiKey)
-                        dismiss()
+                        Task {
+                            let saved = await onSave(providerName, providerType, apiKey)
+                            isSaving = false
+                            if saved {
+                                dismiss()
+                            } else {
+                                saveError = "The API key could not be saved in the iOS Keychain. Please try again."
+                            }
+                        }
                     } label: {
                         HStack {
                             Spacer()
@@ -813,8 +906,13 @@ struct QuickAPIKeyInputView: View {
                             Spacer()
                         }
                     }
-                    .disabled(providerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(providerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
                     .foregroundColor(AppColors.accent)
+                    if let saveError {
+                        Text(saveError)
+                            .font(AppFont.caption)
+                            .foregroundColor(AppColors.destructive)
+                    }
                 }
             }
             .navigationTitle("Add API Key")

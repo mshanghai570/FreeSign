@@ -1,12 +1,10 @@
 #include "common.h"
 #include "base64.h"
 #include "openssl.h"
-#include <openssl/pem.h>
-#include <openssl/cms.h>
-#include <openssl/err.h>
-#include <openssl/provider.h>
-#include <openssl/pkcs12.h>
-#include <openssl/conf.h>
+// OpenSSL-Package exposes OpenSSL as an XCFramework. Its public umbrella
+// header is framework-qualified and works for both iOS device and simulator
+// slices without a developer-machine Homebrew include path.
+#include <OpenSSL/OpenSSL.h>
 
 const char* ZSignAsset::s_szAppleDevCACert = ""
 "-----BEGIN CERTIFICATE-----\n"

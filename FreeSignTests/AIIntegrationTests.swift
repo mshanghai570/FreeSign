@@ -54,6 +54,32 @@ struct AIIntegrationTests {
         #expect(contents[1]["role"] as? String == "model")
     }
 
+    @Test("AI provider requests require HTTPS")
+    func providerTransportRejectsCleartextHTTP() {
+        #expect(throws: AIError.self) {
+            try ProviderHTTPClient.makeRequest(
+                urlString: "http://192.168.1.10:8080/v1/chat/completions",
+                headers: [:],
+                body: [:]
+            )
+        }
+
+        let request = try? ProviderHTTPClient.makeRequest(
+            urlString: "https://api.example.com/v1/chat/completions",
+            headers: ["Content-Type": "application/json"],
+            body: ["model": "example"]
+        )
+        #expect(request?.url?.scheme == "https")
+    }
+
+    @Test("Bundled provider defaults use secure endpoints and model IDs")
+    func providerDefaultsAreReadyForConfiguration() {
+        #expect(AIProviderType.openAICompatible.defaultEndpoint.hasPrefix("https://"))
+        #expect(AIProviderType.gemini.defaultModel == "gemini-3.8-flash")
+        #expect(AIProviderType.anthropic.defaultModel == "claude-sonnet-5")
+        #expect(AIProviderType.localModel.defaultEndpoint.hasPrefix("https://"))
+    }
+
     @Test("P12 and PFX files are recognized for the certificate import flow")
     func certificateFileTypesAreRecognized() {
         let p12 = URL(fileURLWithPath: "/tmp/signing-identity.p12")

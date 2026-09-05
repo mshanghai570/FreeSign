@@ -28,7 +28,7 @@ final class GeminiProvider: AIProvider {
         }
 
         return AsyncThrowingStream { continuation in
-            Task {
+            let task = Task {
                 do {
                     let data = try await ProviderHTTPClient.perform(buildRequest(messages: messages))
                     let response = try ProviderHTTPClient.decode(GeminiResponse.self, from: data)
@@ -42,6 +42,7 @@ final class GeminiProvider: AIProvider {
                     continuation.finish(throwing: error)
                 }
             }
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 

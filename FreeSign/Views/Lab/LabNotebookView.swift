@@ -71,12 +71,16 @@ struct LabNotebookView: View {
     }
 
     private func loadConversations() {
-        // Future: load persisted conversations from disk
-        conversations = []
+        conversations = AIService.shared.notebookConversations()
     }
 
     private func startNewConversation() {
-        let conversation = AIConversation()
+        let id = UUID()
+        let conversation = AIConversation(
+            id: id,
+            title: "New Conversation",
+            sourceView: "LabNotebook:\(id.uuidString)"
+        )
         conversations.insert(conversation, at: 0)
         activeConversation = conversation
     }
@@ -128,9 +132,11 @@ struct LabConversationRow: View {
 
 struct LabConversationView: View {
     @Binding var conversation: AIConversation
+    @Environment(\.dismiss) private var dismiss
     @State private var inputText = ""
     @State private var isGenerating = false
     @State private var currentResponse = ""
+    @State private var requestTask: Task<Void, Never>?
 
     var body: some View {
         ScrollView {
@@ -159,9 +165,10 @@ struct LabConversationView: View {
         .appNavigationTitle(conversation.title)
         .appNavigationStyle()
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Done") {
-                    // dismiss handled by parent
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        requestTask?.cancel()
+                        dismiss()
                 }
                 .foregroundColor(AppColors.secondaryText)
             }
@@ -173,6 +180,9 @@ struct LabConversationView: View {
             if conversation.messages.isEmpty {
                 inputText = ""
             }
+        }
+        .onDisappear {
+            requestTask?.cancel()
         }
     }
 
@@ -254,11 +264,13 @@ struct LabConversationView: View {
         let userMessage = AIMessage.user(question)
         conversation.messages.append(userMessage)
         conversation.updatedAt = Date()
+        conversation = AIService.shared.saveNotebookConversation(conversation)
         inputText = ""
         isGenerating = true
         currentResponse = ""
 
-        Task {
+        requestTask?.cancel()
+        requestTask = Task {
             do {
                 let context = DiagnosticContext(
                     sourceView: conversation.sourceView,
@@ -268,7 +280,8 @@ struct LabConversationView: View {
                 let stream = try await AIService.shared.respond(
                     to: .custom,
                     context: context,
-                    userQuestion: question
+                    userQuestion: question,
+                    history: Array(conversation.messages.dropLast())
                 )
                 var fullResponse = ""
                 for try await chunk in stream {
@@ -278,6 +291,11 @@ struct LabConversationView: View {
                     let assistantMessage = AIMessage.assistant(fullResponse)
                     conversation.messages.append(assistantMessage)
                     conversation.updatedAt = Date()
+                    conversation = AIService.shared.saveNotebookConversation(conversation)
+                    isGenerating = false
+                }
+            } catch is CancellationError {
+                await MainActor.run {
                     isGenerating = false
                 }
             } catch {
@@ -285,6 +303,7 @@ struct LabConversationView: View {
                     let errorMessage = AIMessage.assistant("Error: \(error.localizedDescription)")
                     conversation.messages.append(errorMessage)
                     conversation.updatedAt = Date()
+                    conversation = AIService.shared.saveNotebookConversation(conversation)
                     isGenerating = false
                 }
             }

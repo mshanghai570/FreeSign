@@ -10,7 +10,7 @@
 # Compatible with AltStore, Sideloadly, TrollStore, SideStore.
 # ============================================================
 
-set -e
+set -euo pipefail
 
 # Make the script location-independent (run from anywhere)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,6 +23,14 @@ BUILD_DIR="$(pwd)/build"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 IPA_NAME="FreeSign_${CONFIGURATION}_${TIMESTAMP}.ipa"
 IPA_PATH="$BUILD_DIR/$IPA_NAME"
+
+case "$CONFIGURATION" in
+    Debug|Release) ;;
+    *)
+        echo "Usage: $0 [Debug|Release]" >&2
+        exit 2
+        ;;
+esac
 
 # ── Colours ────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
@@ -42,7 +50,7 @@ mkdir -p "$BUILD_DIR"
 # ── 1. Build ────────────────────────────────────────────────
 step "Building ${SCHEME} (${CONFIGURATION})…"
 BUILD_LOG="$BUILD_DIR/build.log"
-xcodebuild \
+if ! xcodebuild \
     -scheme "$SCHEME" \
     -configuration "$CONFIGURATION" \
     -sdk "$SDK" \
@@ -52,10 +60,7 @@ xcodebuild \
     CODE_SIGNING_ALLOWED=NO \
     CODE_SIGNING_REQUIRED=NO \
     CODE_SIGN_IDENTITY="" \
-    build 2>&1 | tee "$BUILD_LOG"
-
-# Check if build succeeded
-if grep -q "BUILD FAILED" "$BUILD_LOG" || grep -q "error:" "$BUILD_LOG"; then
+    build 2>&1 | tee "$BUILD_LOG"; then
     fail "Build failed — check $BUILD_LOG for details"
 fi
 ok "Build succeeded"

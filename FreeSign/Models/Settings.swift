@@ -26,10 +26,6 @@ final class Settings: ObservableObject, Codable {
     @Published var showDebugInfo: Bool = false
     @Published var logLevel: LogLevel = .info
     
-    // MARK: - AI Settings
-    
-    @Published var aiApiKey: String = ""
-    
     // MARK: - Advanced Settings
     
     @Published var maxConcurrentImports: Int = 3
@@ -41,6 +37,9 @@ final class Settings: ObservableObject, Codable {
     
     init() {
         load()
+        // Re-encode once on launch so legacy `aiApiKey` fields are removed
+        // from the persisted settings blob after the Keychain migration.
+        save()
     }
     
     func save() {
@@ -62,7 +61,6 @@ final class Settings: ObservableObject, Codable {
         self.developerMode = decoded.developerMode
         self.showDebugInfo = decoded.showDebugInfo
         self.logLevel = decoded.logLevel
-        self.aiApiKey = decoded.aiApiKey
         self.maxConcurrentImports = decoded.maxConcurrentImports
         self.timeout = decoded.timeout
         self.cacheSize = decoded.cacheSize
@@ -78,7 +76,7 @@ final class Settings: ObservableObject, Codable {
     
     private enum CodingKeys: String, CodingKey {
         case defaultTab, cardStyle, showAnimations, autoImportFromRepos, confirmDeletions
-        case showTips, developerMode, showDebugInfo, logLevel, aiApiKey
+        case showTips, developerMode, showDebugInfo, logLevel
         case maxConcurrentImports, timeout, cacheSize
     }
     
@@ -93,7 +91,6 @@ final class Settings: ObservableObject, Codable {
         try container.encode(developerMode, forKey: .developerMode)
         try container.encode(showDebugInfo, forKey: .showDebugInfo)
         try container.encode(logLevel, forKey: .logLevel)
-        try container.encode(aiApiKey, forKey: .aiApiKey)
         try container.encode(maxConcurrentImports, forKey: .maxConcurrentImports)
         try container.encode(timeout, forKey: .timeout)
         try container.encode(cacheSize, forKey: .cacheSize)
@@ -110,7 +107,6 @@ final class Settings: ObservableObject, Codable {
         developerMode = try container.decode(Bool.self, forKey: .developerMode)
         showDebugInfo = try container.decode(Bool.self, forKey: .showDebugInfo)
         logLevel = try container.decode(LogLevel.self, forKey: .logLevel)
-        aiApiKey = try container.decodeIfPresent(String.self, forKey: .aiApiKey) ?? ""
         maxConcurrentImports = try container.decode(Int.self, forKey: .maxConcurrentImports)
         timeout = try container.decode(TimeInterval.self, forKey: .timeout)
         cacheSize = try container.decode(Int.self, forKey: .cacheSize)
@@ -128,7 +124,6 @@ final class Settings: ObservableObject, Codable {
         developerMode = false
         showDebugInfo = false
         logLevel = .info
-        aiApiKey = ""
         maxConcurrentImports = 3
         timeout = 30
         cacheSize = 500

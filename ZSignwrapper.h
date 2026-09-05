@@ -43,6 +43,30 @@ NS_ASSUME_NONNULL_BEGIN
                bundleVersion:(nullable NSString *)bundleVersion
                   outputPath:(nullable NSString *)outputPath;
 
+/// Sign an IPA while applying the supported FreeSign bundle and dylib options.
+/// The output path must be inside the app container.
++ (ZSignResult *)signIPAWithOptionsAtPath:(NSString *)ipaPath
+                                 certPath:(nullable NSString *)certPath
+                                 pkeyPath:(nullable NSString *)pkeyPath
+                                 provPath:(nullable NSString *)provPath
+                           entitlementsPath:(nullable NSString *)entitlementsPath
+                                 password:(nullable NSString *)password
+                                 bundleId:(nullable NSString *)bundleId
+                               bundleName:(nullable NSString *)bundleName
+                            bundleVersion:(nullable NSString *)bundleVersion
+                               outputPath:(nullable NSString *)outputPath
+                               dylibPaths:(NSArray<NSString *> *)dylibPaths
+                         removeDylibNames:(NSArray<NSString *> *)removeDylibNames
+                                forceSign:(BOOL)forceSign
+                               weakInject:(BOOL)weakInject
+                         removeExtensions:(BOOL)removeExtensions
+                           removeWatchApp:(BOOL)removeWatchApp
+                   removeUISupportedDevices:(BOOL)removeUISupportedDevices
+                          enableDocuments:(BOOL)enableDocuments
+                              minOSVersion:(nullable NSString *)minOSVersion
+                                  iconPath:(nullable NSString *)iconPath
+                                    adHoc:(BOOL)adHoc;
+
 /// Sign an already-extracted .app folder.
 + (BOOL)signAppFolder:(NSString *)appFolderPath
            certPath:(nullable NSString *)certPath

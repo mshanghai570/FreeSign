@@ -21,6 +21,17 @@ enum KeychainHelper {
         delete(service: Keys.aiService, account: providerID.uuidString)
     }
 
+    /// Deletes every provider key belonging to FreeSign. This is used only by
+    /// the explicit AI-data erasure flow, not by ordinary provider edits.
+    static func deleteAllAIProviderKeys() async -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: Keys.aiService
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+        return status == errSecSuccess || status == errSecItemNotFound
+    }
+
     static func hasKey(providerID: UUID) async -> Bool {
         hasValue(service: Keys.aiService, account: providerID.uuidString)
     }

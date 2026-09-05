@@ -88,7 +88,7 @@ final class AIService {
         }
 
         return AsyncThrowingStream { continuation in
-            Task {
+            let task = Task {
                 do {
                     for try await chunk in upstream {
                         continuation.yield(chunk)
@@ -99,6 +99,7 @@ final class AIService {
                 }
                 await MainActor.run { self.isGenerating = false }
             }
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 
@@ -162,6 +163,39 @@ final class AIService {
         persistConversations()
     }
 
+    /// Returns standalone Lab Notebook conversations from the same bounded,
+    /// erasable store used for per-tab assistant transcripts.
+    func notebookConversations() -> [AIConversation] {
+        conversations
+            .filter { $0.sourceView.hasPrefix("LabNotebook:") }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    @discardableResult
+    func saveNotebookConversation(_ conversation: AIConversation) -> AIConversation {
+        var sanitized = conversation
+        sanitized.messages = Array(conversation.messages.suffix(maximumStoredMessages))
+        sanitized.updatedAt = Date()
+        sanitized.title = conversationTitle(from: sanitized.messages, fallback: "Lab Notebook")
+
+        if let index = conversations.firstIndex(where: { $0.id == sanitized.id }) {
+            conversations[index] = sanitized
+        } else {
+            conversations.append(sanitized)
+        }
+        persistConversations()
+        return sanitized
+    }
+
+    /// Clears in-memory and persisted transcripts after the user chooses the
+    /// explicit Erase AI Data control.
+    func eraseLocalData() {
+        conversations = []
+        activeProvider = nil
+        isGenerating = false
+        UserDefaults.standard.removeObject(forKey: conversationsStorageKey)
+    }
+
     private func loadConversations() {
         guard let data = UserDefaults.standard.data(forKey: conversationsStorageKey),
               let stored = try? JSONDecoder().decode([AIConversation].self, from: data)
@@ -207,7 +241,10 @@ final class AIService {
         } else {
             userContent = "Please \(action.rawValue) the current tab using the supplied context."
         }
-        messages.append(.user(userContent, contextSummary: context.summary))
+        messages.append(.user(
+            userContent,
+            contextSummary: AISettings.shared.sendContextByDefault ? context.summary : nil
+        ))
         return messages
     }
 
@@ -218,13 +255,13 @@ final class AIService {
 
         Current tab: \(context.sourceView)
         Requested action: \(action.displayName)
-        Visible-tab summary: \(context.summary)
         """
 
         if AISettings.shared.sendContextByDefault {
+            prompt += "\n\nVisible-tab summary:\n\(context.summary)"
             prompt += "\n\nDetailed context snapshot:\n\(context.promptPayloadDescription)"
         } else {
-            prompt += "\n\nDetailed context sharing is disabled by the user."
+            prompt += "\n\nNo app, source, file, or certificate metadata was shared. Ask a clarifying question if that information is necessary."
         }
 
         prompt += "\n\n\(action.systemPromptSuffix) Be practical, concise, and clear about any uncertainty."

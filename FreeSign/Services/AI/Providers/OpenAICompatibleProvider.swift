@@ -28,7 +28,7 @@ final class OpenAICompatibleProvider: AIProvider {
         }
 
         return AsyncThrowingStream { continuation in
-            Task {
+            let task = Task {
                 do {
                     let data = try await ProviderHTTPClient.perform(buildRequest(messages: messages))
                     let response = try ProviderHTTPClient.decode(OpenAIResponse.self, from: data)
@@ -41,6 +41,7 @@ final class OpenAICompatibleProvider: AIProvider {
                     continuation.finish(throwing: error)
                 }
             }
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 

@@ -28,7 +28,7 @@ final class AnthropicProvider: AIProvider {
         }
 
         return AsyncThrowingStream { continuation in
-            Task {
+            let task = Task {
                 do {
                     let data = try await ProviderHTTPClient.perform(buildRequest(messages: messages))
                     let response = try ProviderHTTPClient.decode(AnthropicResponse.self, from: data)
@@ -43,6 +43,7 @@ final class AnthropicProvider: AIProvider {
                     continuation.finish(throwing: error)
                 }
             }
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 

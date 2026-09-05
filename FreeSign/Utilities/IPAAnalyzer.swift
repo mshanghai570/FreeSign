@@ -35,13 +35,13 @@ final class IPAAnalyzer {
     func analyze(ipaPath: String) throws -> Result {
         let fileSize = StorageManager.shared.fileSize(at: ipaPath)
 
-        // 1 — Extract to a temp directory inside our Extracts/ folder
-        let extractDir = StorageManager.shared.newExtractDirectory()
-        defer { StorageManager.shared.cleanupExtract(at: extractDir) }
-
+        // ZSignWrapper creates the extraction directory itself in NSTemporaryDirectory.
+        // Always remove that actual path; creating and cleaning an unrelated app
+        // Extracts directory would leave every analyzed IPA expanded on disk.
         guard let extractedPath = try? ZSignWrapper.extractIPA(atPath: ipaPath) else {
             throw AnalyzerError.extractionFailed
         }
+        defer { try? FileManager.default.removeItem(atPath: extractedPath) }
 
         // 2 — Find the .app bundle
         let payloadPath = (extractedPath as NSString).appendingPathComponent("Payload")
@@ -108,8 +108,7 @@ final class IPAAnalyzer {
     }
 
     private func parseMachO(data: Data) -> [String] {
-        let bytes = data.withUnsafeBytes { $0 }
-        let magic = bytes.load(as: UInt32.self)
+        guard let magic = nativeUInt32(in: data, at: 0) else { return ["arm64"] }
 
         switch magic {
         case 0xCAFEBABE, 0xBEBAFECA:
@@ -117,12 +116,12 @@ final class IPAAnalyzer {
             return parseFatBinary(data: data)
 
         case 0xFEEDFACF: // 64-bit little-endian
-            let cpu = bytes.load(fromByteOffset: 4, as: UInt32.self)
-            return [cpuName(type: cpu, bigEndian: false)]
+            guard let cpu = nativeUInt32(in: data, at: 4) else { return ["arm64"] }
+            return [cpuName(type: cpu)]
 
         case 0xCFFAEDFE: // 64-bit big-endian (arm64 on old firmwares, rare)
-            let cpu = bytes.load(fromByteOffset: 4, as: UInt32.self)
-            return [cpuName(type: cpu, bigEndian: true)]
+            guard let rawCPU = nativeUInt32(in: data, at: 4) else { return ["arm64"] }
+            return [cpuName(type: rawCPU.bigEndian)]
 
         case 0xFEEDFACE, 0xCEFAEDFE: // 32-bit
             return ["armv7"]
@@ -136,25 +135,24 @@ final class IPAAnalyzer {
         // Fat header is always big-endian
         // struct fat_header { uint32_t magic; uint32_t nfat_arch; }
         // struct fat_arch   { cpu_type_t cputype; cpu_subtype_t cpusubtype; ... } (20 bytes each)
-        guard data.count >= 8 else { return [] }
-        let bytes = data.withUnsafeBytes { $0 }
-
-        let nArch = bytes.load(fromByteOffset: 4, as: UInt32.self).bigEndian
+        guard let rawCount = nativeUInt32(in: data, at: 4) else { return [] }
+        let nArch = rawCount.bigEndian
+        let maximumEntries = max(0, (data.count - 8) / 20)
+        let entryCount = min(Int(nArch), maximumEntries)
         var result: [String] = []
 
-        for i in 0..<Int(nArch) {
+        for i in 0..<entryCount {
             let offset = 8 + i * 20
-            guard offset + 8 <= data.count else { break }
-            let cpuType = bytes.load(fromByteOffset: offset, as: UInt32.self).bigEndian
-            result.append(cpuName(type: cpuType, bigEndian: true))
+            guard offset + 20 <= data.count,
+                  let rawCPUType = nativeUInt32(in: data, at: offset) else { break }
+            result.append(cpuName(type: rawCPUType.bigEndian))
         }
 
         return result.isEmpty ? ["arm64"] : result
     }
 
-    private func cpuName(type cpuType: UInt32, bigEndian: Bool) -> String {
-        let t = bigEndian ? cpuType : cpuType.byteSwapped
-        switch t {
+    private func cpuName(type cpuType: UInt32) -> String {
+        switch cpuType {
         case 0x0000000C:       return "armv7"
         case 0x0100000C:       return "arm64"
         case 0x0200000C:       return "arm64_32"
@@ -172,50 +170,60 @@ final class IPAAnalyzer {
             return (false, false)
         }
 
-        let bytes = data.withUnsafeBytes { $0 }
-        let magic = bytes.load(as: UInt32.self)
+        guard let magic = nativeUInt32(in: data, at: 0) else { return (false, false) }
 
         // Determine header size
         let is64 = (magic == 0xFEEDFACF || magic == 0xCFFAEDFE)
         let headerSize = is64 ? 32 : 28
-        let isBE = (magic == 0xCFFAEDFE || magic == 0xFEEDFACF)
+        let isBE = (magic == 0xCFFAEDFE || magic == 0xCEFAEDFE)
 
-        guard data.count > headerSize else { return (false, false) }
+        guard data.count >= headerSize else { return (false, false) }
 
-        func readUInt32(at offset: Int) -> UInt32 {
-            let v = bytes.load(fromByteOffset: offset, as: UInt32.self)
+        func readUInt32(at offset: Int) -> UInt32? {
+            guard let v = nativeUInt32(in: data, at: offset) else { return nil }
             return isBE ? v.bigEndian : v
         }
 
-        let ncmds = readUInt32(at: is64 ? 16 : 12)
+        guard let ncmds = readUInt32(at: is64 ? 16 : 12) else { return (false, false) }
+        let maximumCommands = max(0, (data.count - headerSize) / 8)
+        let commandCount = min(Int(ncmds), maximumCommands)
         var offset = headerSize
         var encrypted = false
         var hasSig    = false
 
-        for _ in 0..<ncmds {
-            guard offset + 8 <= data.count else { break }
-            let cmd  = readUInt32(at: offset)
-            let size = readUInt32(at: offset + 4)
+        for _ in 0..<commandCount {
+            guard let cmd = readUInt32(at: offset),
+                  let size = readUInt32(at: offset + 4) else { break }
+            let commandSize = Int(size)
+            guard commandSize >= 8, commandSize <= data.count - offset else { break }
 
             switch cmd {
             case 0x21:       // LC_ENCRYPTION_INFO
-                let cryptID = readUInt32(at: offset + 12)
+                guard commandSize >= 20, let cryptID = readUInt32(at: offset + 16) else { break }
                 if cryptID != 0 { encrypted = true }
             case 0x2C:       // LC_ENCRYPTION_INFO_64
-                let cryptID = readUInt32(at: offset + 16)
+                guard commandSize >= 24, let cryptID = readUInt32(at: offset + 16) else { break }
                 if cryptID != 0 { encrypted = true }
             case 0x1D:       // LC_CODE_SIGNATURE
-                hasSig = true
+                if commandSize >= 16 { hasSig = true }
             default:
                 break
             }
 
-            let advance = Int(size)
-            if advance < 8 { break }
-            offset += advance
+            offset += commandSize
         }
 
         return (encrypted, hasSig)
+    }
+
+    /// Returns a native-endian UInt32 only when the range is valid. `Data` is
+    /// not guaranteed to be naturally aligned, so `loadUnaligned` avoids a
+    /// trap when analyzing a malformed or truncated IPA executable.
+    private func nativeUInt32(in data: Data, at offset: Int) -> UInt32? {
+        guard offset >= 0, offset <= data.count - MemoryLayout<UInt32>.size else { return nil }
+        return data.withUnsafeBytes { rawBuffer in
+            rawBuffer.loadUnaligned(fromByteOffset: offset, as: UInt32.self)
+        }
     }
 
     // MARK: - Icon Extraction

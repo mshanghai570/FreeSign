@@ -33,6 +33,7 @@ enum AIProviderFactory {
 enum AIError: LocalizedError {
     case missingAPIKey
     case invalidEndpoint
+    case insecureEndpoint
     case emptyResponse
     case providerError(String)
 
@@ -42,6 +43,8 @@ enum AIError: LocalizedError {
             return "No API key is available for the active provider. Add one in Settings → Lab Assistant."
         case .invalidEndpoint:
             return "The provider endpoint URL is invalid. Check the URL in Settings → Lab Assistant."
+        case .insecureEndpoint:
+            return "FreeSign requires an HTTPS endpoint for AI providers. Configure TLS on the provider or local inference server."
         case .emptyResponse:
             return "The provider completed the request but did not return any text. Check the selected model and provider settings."
         case .providerError(let message):
@@ -128,10 +131,12 @@ enum ProviderHTTPClient {
     ) throws -> URLRequest {
         guard let url = URL(string: urlString),
               let scheme = url.scheme?.lowercased(),
-              ["https", "http"].contains(scheme),
               url.host != nil
         else {
             throw AIError.invalidEndpoint
+        }
+        guard scheme == "https" else {
+            throw scheme == "http" ? AIError.insecureEndpoint : AIError.invalidEndpoint
         }
 
         var request = URLRequest(url: url)
@@ -167,6 +172,10 @@ enum ProviderHTTPClient {
             return data
         } catch let error as AIError {
             throw error
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
         } catch let error as URLError {
             throw AIError.providerError(networkMessage(for: error))
         } catch {

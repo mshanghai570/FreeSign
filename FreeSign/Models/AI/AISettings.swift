@@ -8,7 +8,9 @@ final class AISettings: Codable {
     var activeProviderID: UUID?
     var providerConfigs: [AIProviderConfiguration] = []
     var defaultAction: AIAction = .explain
-    var sendContextByDefault: Bool = true
+    /// Detailed app, source, and file metadata is never sent to a provider
+    /// until the user explicitly enables contextual assistance.
+    var sendContextByDefault: Bool = false
     var showAssistantInSettings: Bool = true
 
     var activeProvider: AIProviderConfiguration? {
@@ -48,8 +50,24 @@ final class AISettings: Codable {
         activeProviderID = nil
         providerConfigs = []
         defaultAction = .explain
-        sendContextByDefault = true
+        sendContextByDefault = false
+        showAssistantInSettings = true
         save()
+    }
+
+    /// Erases all FreeSign AI configuration, provider API keys, and locally
+    /// stored conversations. The caller must obtain user confirmation first.
+    @discardableResult
+    func eraseAllData() async -> Bool {
+        let keysDeleted = await KeychainHelper.deleteAllAIProviderKeys()
+        activeProviderID = nil
+        providerConfigs = []
+        defaultAction = .explain
+        sendContextByDefault = false
+        showAssistantInSettings = true
+        UserDefaults.standard.removeObject(forKey: storageKey)
+        AIService.shared.eraseLocalData()
+        return keysDeleted
     }
 
     func addProvider(_ config: AIProviderConfiguration) {
@@ -79,6 +97,14 @@ final class AISettings: Codable {
         save()
     }
 
+    func deactivateProvider() {
+        activeProviderID = nil
+        for i in providerConfigs.indices {
+            providerConfigs[i].isActive = false
+        }
+        save()
+    }
+
     enum CodingKeys: String, CodingKey {
         case activeProviderID, providerConfigs, defaultAction, sendContextByDefault, showAssistantInSettings
     }
@@ -94,10 +120,10 @@ final class AISettings: Codable {
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        activeProviderID = try container.decode(UUID?.self, forKey: .activeProviderID)
-        providerConfigs = try container.decode([AIProviderConfiguration].self, forKey: .providerConfigs)
-        defaultAction = try container.decode(AIAction.self, forKey: .defaultAction)
-        sendContextByDefault = try container.decode(Bool.self, forKey: .sendContextByDefault)
-        showAssistantInSettings = try container.decode(Bool.self, forKey: .showAssistantInSettings)
+        activeProviderID = try container.decodeIfPresent(UUID.self, forKey: .activeProviderID)
+        providerConfigs = try container.decodeIfPresent([AIProviderConfiguration].self, forKey: .providerConfigs) ?? []
+        defaultAction = try container.decodeIfPresent(AIAction.self, forKey: .defaultAction) ?? .explain
+        sendContextByDefault = try container.decodeIfPresent(Bool.self, forKey: .sendContextByDefault) ?? false
+        showAssistantInSettings = try container.decodeIfPresent(Bool.self, forKey: .showAssistantInSettings) ?? true
     }
 }

@@ -16,13 +16,7 @@
 #include "third-party/minizip/unzip.h"
 #endif
 
-#include <openssl/pem.h>
-#include <openssl/pkcs12.h>
-#include <openssl/cms.h>
-#include <openssl/ocsp.h>
-#include <openssl/err.h>
-#include <openssl/provider.h>
-#include <openssl/x509v3.h>
+#include <OpenSSL/OpenSSL.h>
 #include <ctime>
 
 #ifdef _WIN32

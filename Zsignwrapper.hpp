@@ -52,6 +52,32 @@ public:
 				 const std::string& strBundleVersion,
 				 const std::string& strBundleName)
 	{
+		return SignIPA(
+			strIPA, strOutput, strBundleId, strBundleVersion, strBundleName,
+			std::vector<std::string>(), std::vector<std::string>(),
+			true, false, false, false, false, false, "", ""
+		);
+	}
+
+	// Signs an IPA while applying the FreeSign UI's bundle and dylib options.
+	// The option values mirror ZBundle::SignFolder so the Swift layer never
+	// reports a successful customization that was silently ignored.
+	bool SignIPA(const std::string& strIPA,
+				 const std::string& strOutput,
+				 const std::string& strBundleId,
+				 const std::string& strBundleVersion,
+				 const std::string& strBundleName,
+				 const std::vector<std::string>& arrInjectDylibs,
+				 const std::vector<std::string>& arrRemoveDylibs,
+				 bool bForce,
+				 bool bWeakInject,
+				 bool bRemoveExtensions,
+				 bool bRemoveWatchApp,
+				 bool bRemoveUISupportedDevices,
+				 bool bEnableDocuments,
+				 const std::string& strMinVersion,
+				 const std::string& strIconFile)
+	{
 		if (!m_bInit) {
 			m_strError = "Signing engine is not initialized.";
 			return false;
@@ -76,9 +102,15 @@ public:
 		}
 
 		ZBundle bundle;
+		bundle.m_bEnableDocuments = bEnableDocuments;
+		bundle.m_strMinVersion = strMinVersion;
+		bundle.m_strIconFile = strIconFile;
+		bundle.m_bRemoveExtensions = bRemoveExtensions;
+		bundle.m_bRemoveWatchApp = bRemoveWatchApp;
+		bundle.m_bRemoveUISupportedDevices = bRemoveUISupportedDevices;
 		if (!bundle.SignFolder(&m_zsa, strFolder, strBundleId, strBundleVersion, strBundleName,
-							   std::vector<std::string>(), std::vector<std::string>(),
-							   true, false, false)) {
+							   arrInjectDylibs, arrRemoveDylibs,
+							   bForce, bWeakInject, false)) {
 			m_strError = "Failed to sign the app bundle.";
 			ZFile::RemoveFolder(strFolder.c_str());
 			return false;

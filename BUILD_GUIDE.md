@@ -1,189 +1,102 @@
-# FreeSign iOS Build Guide
+# FreeSign iOS Build and Readiness Guide
 
-This guide explains how to build and create unsigned IPA files for sideloading the FreeSign app.
+FreeSign is an iOS IPA management and signing app. It imports IPA archives, manages PKCS#12 identities and provisioning profiles, signs IPAs locally with the bundled signing engine, and can export the signed archive to a receiving sideloading tool. The Lab Assistant supports user-configured OpenAI-compatible, Gemini, Anthropic, and HTTPS local-model endpoints.
 
 ## Prerequisites
 
-- macOS with Xcode installed
-- iOS device for sideloading (optional, for testing)
-- Sideloading tool (AltStore, Sideloadly, TrollStore, etc.)
+A development Mac must have **Xcode 16.2 or later**, an iOS 18.2 simulator runtime for tests, and an Apple ID signed in to Xcode. To install a development build directly from Xcode, select an Apple Development team for the **FreeSign** target under **Signing & Capabilities**. The project is configured for automatic signing; the repository deliberately does not contain a personal development-team identifier, certificate, or provisioning profile.
 
-## Project Configuration
+The project resolves [OpenSSL-Package](https://github.com/krzyzanowskim/OpenSSL-Package) through Swift Package Manager. Xcode must have Internet access the first time dependencies are resolved.
 
-The project has been configured to **disable code signing** for the main target, which allows you to build unsigned IPA files that can be sideloaded using third-party tools.
+## First-Time Xcode Setup
 
-### What was changed:
-- `CODE_SIGN_STYLE = Manual`
-- `CODE_SIGNING_REQUIRED = NO`
-- `CODE_SIGNING_ALLOWED = NO`
+1. Open `FreeSign.xcodeproj` in Xcode.
+2. Allow Xcode to resolve package dependencies.
+3. Select the **FreeSign** application target, open **Signing & Capabilities**, and select the intended Apple Development team.
+4. Confirm that the bundle identifier `com.freesign.app` is available to that team, or change it to an identifier you control.
+5. Choose an iOS 18.2-or-later simulator and run the unit tests before using a device.
 
-This means Xcode will not attempt to sign the app during the build process.
+The separate unit-test command below disables code signing only for simulator CI. Do not disable signing in the application target when testing on a physical device.
 
-## Building the App
+## Build and Test
 
-### Option 1: Using the Build Script (Recommended)
+### Run tests in Xcode
 
-```bash
-# Make the script executable (first time only)
-chmod +x build_unsigned_ipa.sh
+Use **Product → Test** after choosing an available iPhone simulator. The project includes a GitHub Actions workflow at `.github/workflows/ios-ci.yml` that resolves dependencies and runs the same test scheme on macOS for pushes and pull requests to `master`.
 
-# Build Release version for device
-./build_unsigned_ipa.sh Release device
-
-# Build Debug version for device  
-./build_unsigned_ipa.sh Debug device
-
-# Build for simulator (for testing)
-./build_unsigned_ipa.sh Release simulator
-```
-
-The script will:
-1. Build the app using Xcode
-2. Create an unsigned IPA file in the `build/` directory
-3. Verify that the IPA is unsigned
-4. Display the IPA path and size
-
-### Option 2: Manual Build with Xcode
-
-1. Open `FreeSign.xcodeproj` in Xcode
-2. Select your target device or "Any iOS Device"
-3. Choose Product > Build (⌘B)
-4. The unsigned app will be in:
-   ```
-   ~/Library/Developer/Xcode/DerivedData/FreeSign-*/Build/Products/Release-iphoneos/
-   ```
-
-### Option 3: Manual Build with xcodebuild
+### Run tests from Terminal
 
 ```bash
-# Build Release version
-xcodebuild -scheme FreeSign -configuration Release -sdk iphoneos build
-
-# Build Debug version
-xcodebuild -scheme FreeSign -configuration Debug -sdk iphoneos build
+xcodebuild test \
+  -project FreeSign.xcodeproj \
+  -scheme FreeSign \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  CODE_SIGNING_ALLOWED=NO
 ```
 
-## Creating an IPA File
+If the named simulator is unavailable, open Xcode’s **Window → Devices and Simulators** and substitute an installed device name or identifier.
 
-### Using the Build Script
-The build script automatically creates an IPA file in the `build/` directory.
+### Build an unsigned IPA for a sideloading tool
 
-### Manual IPA Creation
+The project-root script builds a device archive without applying the developer-machine signature and packages it as an IPA. This is useful when a separate sideloading tool will sign the application.
 
 ```bash
-# Navigate to the build directory
-cd ~/Library/Developer/Xcode/DerivedData/FreeSign-*/Build/Products/Release-iphoneos/
-
-# Create IPA from the app bundle
-mkdir -p ~/Desktop/FreeSign_IPAs
-ditto -c -k --sequesterRsrc --keepParent FreeSign.app ~/Desktop/FreeSign_IPAs/FreeSign.ipa
+chmod +x build_unsigned_ipa.sh build_simple.sh
+./build_unsigned_ipa.sh Release
 ```
 
-## Verifying the IPA is Unsigned
+The finished IPA and build log are written under `build/`. `build_simple.sh` remains as a backward-compatible wrapper around this maintained command.
 
-```bash
-# Extract the IPA to a temporary directory
-unzip -q FreeSign.ipa -d /tmp/ipa_check
+### Build a device development build in Xcode
 
-# Check for code signatures (should not exist for main app)
-find /tmp/ipa_check/FreeSign.app -name "*CodeSignature*" -o -name "*mobileprovision*"
+After selecting a team, choose a connected device and use **Product → Run**. Xcode will sign the app with your development identity. This is the appropriate route for direct device debugging.
 
-# Check binary signature (should show "code object is not signed at all")
-codesign -v /tmp/ipa_check/FreeSign.app/FreeSign
-```
+## In-App Signing Workflow
 
-## Sideloading the IPA
+1. Import an IPA in the Library tab.
+2. Import a `.p12`/`.pfx` certificate and attach a compatible, unexpired `.mobileprovision` profile in Certificates.
+3. Open **Sign & Export** from an imported IPA.
+4. Optionally change the display name, bundle ID, version, minimum iOS version, custom entitlements, icon, dylib injection list, or supported native options.
+5. Sign the IPA. The output is retained in the app container at `Documents/Signed` and appears in FreeSign’s signed-app history.
+6. Choose **Export IPA** and send the archive to AltStore, SideStore, Files, or another receiving sideloading tool. iOS does not permit an ordinary app to install a local IPA directly; the receiving tool performs installation.
 
-### Option 1: Using Sideloadly (Recommended)
+FreeSign preflights the source IPA, certificate file, certificate/profile expiry, entitlement file, and bundle-ID coverage before it starts the native signing operation. In ad-hoc mode, it does not require a certificate/profile, but the resulting archive is appropriate only for workflows that accept ad-hoc signatures.
 
-1. Download [Sideloadly](https://sideloadly.io/)
-2. Connect your iOS device to your Mac
-3. Open Sideloadly
-4. Drag and drop the unsigned IPA file
-5. Enter your Apple ID (free account works)
-6. Click Start to sideload
+## Lab Assistant Setup and Privacy
 
-### Option 2: Using AltStore
+Add an AI provider in **Settings → Lab Assistant**. Provider keys are held in the iOS Keychain and are not stored in FreeSign’s preferences. The assistant defaults are:
 
-1. Install AltStore on your iOS device
-2. Connect your device to your Mac
-3. Open AltStore
-4. Select the unsigned IPA file
-5. Install to your device
+| Provider | Default model |
+| --- | --- |
+| OpenAI-compatible | `gpt-5.6-luna` |
+| Gemini | `gemini-3.8-flash` |
+| Anthropic | `claude-sonnet-5` |
 
-### Option 3: Using TrollStore (Permanent Sideloading)
+Use **Test Connection** to issue a small, explicit request against the selected endpoint, key, and model. The test consumes a provider request and requires a nonempty reply.
 
-If your device supports TrollStore (iOS 14.0-15.4.1):
-1. Install TrollStore using the appropriate exploit
-2. Use TrollHelper to sign and install the IPA permanently
+**Current-screen context sharing is disabled by default.** When disabled, FreeSign sends the user’s question and a generic task instruction but does not include app, source, file, certificate, or visible-tab summary metadata. Enable **Share Current-Screen Context** only when that information is appropriate to send to the selected provider.
 
-### Option 4: Manual Signing with zsign
+All AI endpoints must use **HTTPS**, including local inference servers. The Local Model provider speaks the OpenAI-compatible Chat Completions protocol and uses an imported model file name only as the `model` identifier sent to that server; it does not run GGUF or MLX inference on-device.
 
-The project includes the zsign source code, which can be used to sign IPAs:
-
-```bash
-# Ad-hoc signing (no certificate needed)
-./zsign -a -o signed.ipa unsigned.ipa
-
-# Sign with certificate and provisioning profile
-./zsign -k private_key.pem -m profile.mobileprovision -o signed.ipa unsigned.ipa
-
-# Sign with p12 certificate
-./zsign -k cert.p12 -p password -m profile.mobileprovision -o signed.ipa unsigned.ipa
-```
+Use **Erase AI Data** in Lab Assistant settings to permanently remove all configured AI providers, every FreeSign AI API key stored in Keychain, and saved assistant conversations. The general **Reset All Settings** action presents the same data-erasure disclosure before proceeding. See [provider model verification](docs/provider-model-verification.md) for the current default-model sources.
 
 ## Troubleshooting
 
-### Build Errors
-
-**Error: "Signing for FreeSign requires a development team"**
-- Make sure you've applied the project changes (CODE_SIGN_STYLE = Manual, etc.)
-- Clean the project: Product > Clean Build Folder (⇧⌘K)
-- Delete DerivedData: `rm -rf ~/Library/Developer/Xcode/DerivedData/`
-
-**Error: "No signing certificate"**
-- The project is configured to not require signing, so this shouldn't happen
-- Make sure you're building the correct scheme (FreeSign, not FreeSignTests)
-
-### IPA Issues
-
-**IPA is signed when it shouldn't be**
-- Check that CODE_SIGNING_REQUIRED = NO in the project settings
-- Make sure you're building the Release configuration
-- The OpenSSL.framework might have signatures, but the main app should be unsigned
-
-**IPA won't install on device**
-- Make sure you're using a compatible sideloading tool
-- Try ad-hoc signing with zsign
-- Check that your device iOS version matches the app's deployment target (18.2)
-
-### Device Compatibility
-
-The app targets iOS 18.2, so you need:
-- iOS 18.2 or later on your device
-- Xcode 15.2 or later (for iOS 18.2 SDK)
+| Symptom | Resolution |
+| --- | --- |
+| Xcode says a development team is required | Select your team under **FreeSign → Signing & Capabilities** and use an identifier owned by that team. |
+| Swift package dependency fails to resolve | Check the network connection, then use **File → Packages → Reset Package Caches** and resolve again. |
+| The assistant reports an insecure endpoint | Configure HTTPS/TLS on the provider or local inference server; FreeSign deliberately blocks cleartext HTTP requests. |
+| Signing says the profile does not cover the bundle ID | Select a profile whose exact or wildcard application identifier covers the effective bundle identifier, or change the requested identifier. |
+| A signed IPA is ready but is not installed | Use **Export IPA** and select a sideloading tool. Installation is intentionally delegated to that receiving tool. |
 
 ## Clean Build
 
-To ensure a completely clean build:
-
 ```bash
-# Clean Xcode build
-xcodebuild clean
-
-# Delete DerivedData
 rm -rf ~/Library/Developer/Xcode/DerivedData/FreeSign*
-
-# Delete build directory
-rm -rf build/
-
-# Then rebuild
-./build_unsigned_ipa.sh Release device
+xcodebuild -resolvePackageDependencies -project FreeSign.xcodeproj -scheme FreeSign
+xcodebuild test -project FreeSign.xcodeproj -scheme FreeSign \
+  -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
 ```
 
-## Notes
-
-- The unsigned IPA can be sideloaded using free Apple IDs (7-day limit) or paid developer accounts (1-year limit)
-- For permanent sideloading, consider TrollStore if your device is compatible
-- The app includes zsign functionality, which you can use to sign IPAs with your own certificates
-- Always test on simulator first before sideloading to a device
+Do not commit personal certificates, provisioning profiles, API keys, or a personal `DEVELOPMENT_TEAM` setting to the repository.
