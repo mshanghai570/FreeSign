@@ -20,21 +20,22 @@ final class GeminiProvider: AIProvider {
         messages: [AIMessage],
         context: AIContext?
     ) async throws -> AsyncThrowingStream<String, Error> {
-        guard let apiKey = apiKey, !apiKey.isEmpty else {
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: AIError.missingAPIKey)
-            }
+        guard let apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return AsyncThrowingStream { $0.finish(throwing: AIError.missingAPIKey) }
+        }
+        guard !configuration.modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return AsyncThrowingStream { $0.finish(throwing: AIError.providerError("Select a model name for the active provider.")) }
         }
 
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    let request = try buildRequest(messages: messages, context: context)
-                    let data = try await ProviderHTTPClient.perform(request)
-
+                    let data = try await ProviderHTTPClient.perform(buildRequest(messages: messages))
                     let response = try ProviderHTTPClient.decode(GeminiResponse.self, from: data)
-                    let text = response.candidates?.first?.content.parts.first?.text ?? ""
-
+                    let text = response.candidates?
+                        .first?.content.parts.compactMap(\.text).joined()
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    guard !text.isEmpty else { throw AIError.emptyResponse }
                     continuation.yield(text)
                     continuation.finish()
                 } catch {
@@ -44,37 +45,31 @@ final class GeminiProvider: AIProvider {
         }
     }
 
-    private func buildRequest(messages: [AIMessage], context: AIContext?) throws -> URLRequest {
-        var contents: [[String: Any]] = []
-
-        if let context = context {
-            let systemPrompt = """
-            You are a lab assistant for FreeSign, an iOS sideloading app.
-            Context: \(context.sourceView) — \(context.summary)
-            """
-            contents.append(["role": "user", "parts": [["text": systemPrompt]]])
-        }
-
-        for msg in messages {
-            contents.append([
-                "role": msg.role == .assistant ? "model" : "user",
-                "parts": [["text": msg.content]]
-            ])
-        }
-
-        let body: [String: Any] = [
-            "contents": contents
+    private func buildRequest(messages: [AIMessage]) throws -> URLRequest {
+        var body: [String: Any] = [
+            "contents": AIProviderMessageFormatter.geminiContents(from: messages),
+            "generationConfig": ["maxOutputTokens": 1_024]
         ]
+        if let systemPrompt = AIProviderMessageFormatter.systemPrompt(from: messages) {
+            body["systemInstruction"] = ["parts": [["text": systemPrompt]]]
+        }
 
-        let endpoint = ProviderHTTPClient.endpoint(
-            configuration.endpointURL,
-            path: "/v1beta/models/\(configuration.modelName):generateContent"
-        )
+        var base = configuration.endpointURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        while base.hasSuffix("/") { base.removeLast() }
+        let endpoint: String
+        if base.hasSuffix(":generateContent") {
+            endpoint = base
+        } else if base.contains("/v1beta") {
+            endpoint = ProviderHTTPClient.endpoint(base, path: "/models/\(configuration.modelName):generateContent")
+        } else {
+            endpoint = ProviderHTTPClient.endpoint(base, path: "/v1beta/models/\(configuration.modelName):generateContent")
+        }
+
         return try ProviderHTTPClient.makeRequest(
             urlString: endpoint,
             headers: [
                 "Content-Type": "application/json",
-                "Authorization": "Bearer \(apiKey ?? "")"
+                "x-goog-api-key": apiKey ?? ""
             ],
             body: body
         )
@@ -82,14 +77,8 @@ final class GeminiProvider: AIProvider {
 }
 
 private struct GeminiResponse: Codable {
-    struct Part: Codable {
-        let text: String
-    }
-    struct Content: Codable {
-        let parts: [Part]
-    }
-    struct Candidate: Codable {
-        let content: Content
-    }
+    struct Part: Codable { let text: String? }
+    struct Content: Codable { let parts: [Part] }
+    struct Candidate: Codable { let content: Content }
     let candidates: [Candidate]?
 }

@@ -10,6 +10,8 @@ struct AssistantSettingsView: View {
     @State private var apiKeyStatusMessage: String?
     @State private var showingModelImporter = false
     @State private var showingQuickAPIKeyInput = false
+    @State private var testingProviderID: UUID?
+    @State private var providerTestMessage: String?
 
     var body: some View {
         ScrollView {
@@ -98,9 +100,17 @@ struct AssistantSettingsView: View {
                 }
             }
         }
-        .onAppear {
-            AIService.shared.refreshActiveProvider()
-        }
+            .onAppear {
+                AIService.shared.refreshActiveProvider()
+            }
+            .alert("Provider Connection", isPresented: Binding(
+                get: { providerTestMessage != nil },
+                set: { if !$0 { providerTestMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { providerTestMessage = nil }
+            } message: {
+                Text(providerTestMessage ?? "")
+            }
     }
 
     private var inactiveBanner: some View {
@@ -308,7 +318,13 @@ struct AssistantSettingsView: View {
                         .background(AppColors.success.opacity(0.12))
                         .clipShape(Capsule())
                 }
+            }
+            .padding(14)
 
+            Divider()
+                .background(AppColors.cardBorder)
+
+            HStack(spacing: 10) {
                 Button {
                     selectedProviderForAPIKey = config
                     apiKeyInput = ""
@@ -328,6 +344,23 @@ struct AssistantSettingsView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 .contentShape(Rectangle())
+
+                Button {
+                    testConnection(for: config)
+                } label: {
+                    Label("Test Connection", systemImage: testingProviderID == config.id ? "arrow.triangle.2.circlepath" : "checkmark.circle")
+                        .font(AppFont.caption.bold())
+                        .foregroundColor(AppColors.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(AppColors.accent.opacity(0.10))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(testingProviderID != nil)
+                .accessibilityLabel("Test \(config.name) connection")
+
+                Spacer(minLength: 0)
 
                 Menu {
                     Button {
@@ -367,7 +400,8 @@ struct AssistantSettingsView: View {
                         .foregroundColor(AppColors.disabledText)
                 }
             }
-            .padding(14)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
 
             if config.endpointURL.isEmpty && config.providerType.requiresEndpoint {
                 Text("Endpoint not configured.")
@@ -383,6 +417,25 @@ struct AssistantSettingsView: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(config.isActive ? AppColors.success.opacity(0.4) : AppColors.cardBorder, lineWidth: 1)
         )
+    }
+
+    private func testConnection(for config: AIProviderConfiguration) {
+        guard testingProviderID == nil else { return }
+        testingProviderID = config.id
+        Task {
+            do {
+                _ = try await AIService.shared.testConnection(for: config)
+                await MainActor.run {
+                    providerTestMessage = "Connection to \(config.name) succeeded."
+                    testingProviderID = nil
+                }
+            } catch {
+                await MainActor.run {
+                    providerTestMessage = "Connection to \(config.name) failed: \(error.localizedDescription)"
+                    testingProviderID = nil
+                }
+            }
+        }
     }
 
     private var addProviderButton: some View {

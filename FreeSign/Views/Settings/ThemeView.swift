@@ -6,7 +6,7 @@ import PhotosUI
 /// Comprehensive theme customization view with all options from Feather and ZSign
 struct ThemeView: View {
     @ObservedObject private var theme = ThemeManager.shared
-    @StateObject private var settings = Settings.shared
+    @ObservedObject private var settings = Settings.shared
     
     // Photo picker state
     @State private var photoPickerItem: PhotosPickerItem?
@@ -117,17 +117,20 @@ struct ThemeView: View {
                 GridItem(.adaptive(minimum: 80), spacing: 8)
             ], spacing: 8) {
                 ForEach(ThemePreset.allCases, id: \.self) { preset in
-                    PresetPill(
-                        preset: preset,
-                        theme: theme,
-                        isSelected: theme.preset == preset
-                    )
-                    .onTapGesture {
+                    Button {
                         theme.preset = preset
                         if preset != .custom {
                             customColor = Color(hex: preset.accentHex)
                         }
+                    } label: {
+                        PresetPill(
+                            preset: preset,
+                            theme: theme,
+                            isSelected: theme.preset == preset
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Use \(preset.displayName) theme")
                 }
             }
             .padding(.horizontal, 16)
@@ -343,14 +346,18 @@ struct ThemeView: View {
             
             VStack(spacing: 1) {
                 ForEach(ThemeCardStyle.allCases, id: \.self) { style in
-                    CardStyleOption(
-                        style: style,
-                        theme: theme,
-                        isSelected: theme.cardStyle == style
-                    )
-                    .onTapGesture {
+                    Button {
                         theme.cardStyle = style
+                    } label: {
+                        CardStyleOption(
+                            style: style,
+                            theme: theme,
+                            isSelected: theme.cardStyle == style
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    .accessibilityLabel("Use \(style.displayName) card style")
                 }
             }
             .background(ThemeManager.shared.surfaceColor)
@@ -370,14 +377,18 @@ struct ThemeView: View {
             
             VStack(spacing: 1) {
                 ForEach(AppIconStyle.allCases, id: \.self) { style in
-                    AppIconStyleOption(
-                        style: style,
-                        theme: theme,
-                        isSelected: theme.appIconStyle == style
-                    )
-                    .onTapGesture {
+                    Button {
                         theme.appIconStyle = style
+                    } label: {
+                        AppIconStyleOption(
+                            style: style,
+                            theme: theme,
+                            isSelected: theme.appIconStyle == style
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    .accessibilityLabel("Use \(style.displayName) app icon style")
                 }
             }
             .background(ThemeManager.shared.surfaceColor)

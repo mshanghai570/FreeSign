@@ -131,6 +131,7 @@ final class AppDataManager: ObservableObject {
     func removeCertificate(_ cert: Certificate) {
         storage.deleteFile(at: cert.p12Path)
         cert.provisioningProfiles.forEach { storage.deleteFile(at: $0.path) }
+        Task { _ = await KeychainHelper.deleteCertificatePassword(certificateID: cert.id) }
         certificates.removeAll { $0.id == cert.id }
         save()
     }

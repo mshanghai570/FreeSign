@@ -5,6 +5,7 @@
 #import "Zsignwrapper.h"
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
+#import <Security/SecCertificateOIDs.h>
 
 #include <string>
 #include <vector>
@@ -274,6 +275,41 @@ static NSString *tempExtractFolder()
     CFStringRef commonName = NULL;
     SecCertificateCopyCommonName(certRef, &commonName);
     NSString *cn = commonName ? (__bridge_transfer NSString *)commonName : nil;
+
+    // Pull commonly useful X.509 values while the Security certificate handle
+    // is live. In particular, storing the actual not-after date prevents a
+    // valid P12 from being shown as valid for a fabricated one-year period.
+    NSArray *valueKeys = @[
+        (__bridge id)kSecOIDX509V1ValidityNotAfter,
+        (__bridge id)kSecOIDX509V1SerialNumber
+    ];
+    CFErrorRef valuesError = NULL;
+    CFDictionaryRef valuesRef = SecCertificateCopyValues(
+        certRef,
+        (__bridge CFArrayRef)valueKeys,
+        &valuesError
+    );
+    NSDictionary *certificateValues = valuesRef
+        ? CFBridgingRelease(valuesRef)
+        : @{};
+    if (valuesError) {
+        CFRelease(valuesError);
+    }
+
+    NSDictionary *expiryProperty = certificateValues[(__bridge id)kSecOIDX509V1ValidityNotAfter];
+    NSDate *expirationDate = [expiryProperty[(id)kSecPropertyKeyValue] isKindOfClass:[NSDate class]]
+        ? expiryProperty[(id)kSecPropertyKeyValue]
+        : nil;
+
+    NSDictionary *serialProperty = certificateValues[(__bridge id)kSecOIDX509V1SerialNumber];
+    NSData *serialData = [serialProperty[(id)kSecPropertyKeyValue] isKindOfClass:[NSData class]]
+        ? serialProperty[(id)kSecPropertyKeyValue]
+        : nil;
+    NSMutableString *serialNumber = [NSMutableString string];
+    const unsigned char *serialBytes = (const unsigned char *)serialData.bytes;
+    for (NSUInteger index = 0; index < serialData.length; index++) {
+        [serialNumber appendFormat:@"%02X", serialBytes[index]];
+    }
     
     CFRelease(certRef);
     CFRelease(items);
@@ -284,6 +320,12 @@ static NSString *tempExtractFolder()
     }
     if (cn) {
         result[@"commonName"] = cn;
+    }
+    if (expirationDate) {
+        result[@"expirationDate"] = expirationDate;
+    }
+    if (serialNumber.length > 0) {
+        result[@"serialNumber"] = serialNumber;
     }
 
     return [result copy];

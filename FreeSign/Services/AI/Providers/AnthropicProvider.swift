@@ -20,21 +20,23 @@ final class AnthropicProvider: AIProvider {
         messages: [AIMessage],
         context: AIContext?
     ) async throws -> AsyncThrowingStream<String, Error> {
-        guard let apiKey = apiKey, !apiKey.isEmpty else {
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: AIError.missingAPIKey)
-            }
+        guard let apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return AsyncThrowingStream { $0.finish(throwing: AIError.missingAPIKey) }
+        }
+        guard !configuration.modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return AsyncThrowingStream { $0.finish(throwing: AIError.providerError("Select a model name for the active provider.")) }
         }
 
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    let request = try buildRequest(messages: messages, context: context)
-                    let data = try await ProviderHTTPClient.perform(request)
-
+                    let data = try await ProviderHTTPClient.perform(buildRequest(messages: messages))
                     let response = try ProviderHTTPClient.decode(AnthropicResponse.self, from: data)
-                    let text = response.content?.first?.text ?? ""
-
+                    let text = response.content
+                        .compactMap(\.text)
+                        .joined()
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !text.isEmpty else { throw AIError.emptyResponse }
                     continuation.yield(text)
                     continuation.finish()
                 } catch {
@@ -44,44 +46,26 @@ final class AnthropicProvider: AIProvider {
         }
     }
 
-    private func buildRequest(messages: [AIMessage], context: AIContext?) throws -> URLRequest {
-        var apiMessages: [[String: Any]] = []
-
-        if let context = context {
-            let systemPrompt = """
-            You are a lab assistant for FreeSign, an iOS sideloading app.
-            Context: \(context.sourceView) — \(context.summary)
-            """
-            apiMessages.append(["role": "user", "content": systemPrompt])
-        }
-
-        for msg in messages {
-            apiMessages.append([
-                "role": msg.role.rawValue,
-                "content": msg.content
-            ])
-        }
-
-        let body: [String: Any] = [
-            "model": configuration.modelName,
-            "messages": apiMessages,
-            "max_tokens": 1024
+    private func buildRequest(messages: [AIMessage]) throws -> URLRequest {
+        var body: [String: Any] = [
+            "model": configuration.modelName.trimmingCharacters(in: .whitespacesAndNewlines),
+            "messages": AIProviderMessageFormatter.anthropicMessages(from: messages),
+            "max_tokens": 1_024
         ]
-
-        // Anthropic's Messages API lives at /v1/messages. Accept a base URL
-        // (https://api.anthropic.com) or a full endpoint, without producing
-        // /v1/v1/... (which would 404 and surface as a provider error).
-        var baseURL = configuration.endpointURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        if baseURL.hasSuffix("/") { baseURL.removeLast() }
-        let path: String
-        if baseURL.hasSuffix("/v1/messages") {
-            path = ""
-        } else if baseURL.hasSuffix("/v1") {
-            path = "/messages"
-        } else {
-            path = "/v1/messages"
+        if let systemPrompt = AIProviderMessageFormatter.systemPrompt(from: messages) {
+            body["system"] = systemPrompt
         }
-        let endpoint = ProviderHTTPClient.endpoint(baseURL, path: path)
+
+        var baseURL = configuration.endpointURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        while baseURL.hasSuffix("/") { baseURL.removeLast() }
+        let endpoint: String
+        if baseURL.hasSuffix("/v1/messages") {
+            endpoint = baseURL
+        } else if baseURL.hasSuffix("/v1") {
+            endpoint = ProviderHTTPClient.endpoint(baseURL, path: "/messages")
+        } else {
+            endpoint = ProviderHTTPClient.endpoint(baseURL, path: "/v1/messages")
+        }
 
         return try ProviderHTTPClient.makeRequest(
             urlString: endpoint,
@@ -97,7 +81,8 @@ final class AnthropicProvider: AIProvider {
 
 private struct AnthropicResponse: Codable {
     struct ContentBlock: Codable {
-        let text: String
+        let type: String?
+        let text: String?
     }
-    let content: [ContentBlock]?
+    let content: [ContentBlock]
 }
