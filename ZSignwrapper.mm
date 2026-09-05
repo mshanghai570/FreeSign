@@ -5,7 +5,6 @@
 #import "ZSignwrapper.h"
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
-#import <Security/SecCertificateOIDs.h>
 
 #include <string>
 #include <vector>
