@@ -1,0 +1,46 @@
+# Xcode
+*.xcodeproj/*.mode1v3
+*.xcodeproj/*.mode2v3
+*.xcodeproj/*.pbxuser
+*.xcodeproj/*.perspectivev3
+*.xcworkspace/contents.xcworkspacedata
+*.xcworkspace/xcuserdata
+build/
+DerivedData/
+*.xcarchive
+*.xccheckout
+
+# Swift Package Manager
+_package_resolved
+Package.resolved
+build-sim/
+
+# IDE
+.DS_Store
+.idea/
+*.swp
+*.swo
+
+# User-specific
+*.xcuserdatad/
+xcuserdata/
+
+# Test and build artifacts
+*.ipa
+*.dSYM/
+*.app
+
+# Logs
+*.log
+
+# Local overrides
+*.local
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temp files
+*.tmp
+*.temp

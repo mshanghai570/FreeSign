@@ -1,0 +1,837 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CFBD3495301BF4DB00AD442D /* certcheck.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD3494301BF4DB00AD442D /* certcheck.cpp */; };
+		CFBD3496301BF4DB00AD442D /* archo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD3490301BF4DB00AD442D /* archo.cpp */; };
+		CFBD3497301BF4DB00AD442D /* bundle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD3492301BF4DB00AD442D /* bundle.cpp */; };
+		CFBD34A1301BF55300AD442D /* openssl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD349E301BF55300AD442D /* openssl.cpp */; };
+		CFBD34A2301BF55300AD442D /* metadata.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD349C301BF55300AD442D /* metadata.cpp */; };
+		CFBD34A3301BF55300AD442D /* macho.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD349A301BF55300AD442D /* macho.cpp */; };
+		CFBD34A4301BF55300AD442D /* signing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34A0301BF55300AD442D /* signing.cpp */; };
+		CFBD34B0301BF56900AD442D /* ioapi.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34A7301BF56900AD442D /* ioapi.c */; };
+		CFBD34B1301BF56900AD442D /* unzip.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34AD301BF56900AD442D /* unzip.c */; };
+		CFBD34B2301BF56900AD442D /* iowin32.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34A9301BF56900AD442D /* iowin32.c */; };
+		CFBD34B3301BF56900AD442D /* zip.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34AF301BF56900AD442D /* zip.c */; };
+		CFBD34B4301BF56900AD442D /* mztools.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34AB301BF56900AD442D /* mztools.c */; };
+		CFBD34CF301BF57D00AD442D /* inftrees.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34C7301BF57D00AD442D /* inftrees.c */; };
+		CFBD34D0301BF57D00AD442D /* gzread.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34BE301BF57D00AD442D /* gzread.c */; };
+		CFBD34D1301BF57D00AD442D /* inffast.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34C2301BF57D00AD442D /* inffast.c */; };
+		CFBD34D2301BF57D00AD442D /* adler32.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34B5301BF57D00AD442D /* adler32.c */; };
+		CFBD34D3301BF57D00AD442D /* gzclose.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34BB301BF57D00AD442D /* gzclose.c */; };
+		CFBD34D4301BF57D00AD442D /* gzwrite.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34BF301BF57D00AD442D /* gzwrite.c */; };
+		CFBD34D5301BF57D00AD442D /* uncompr.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34CA301BF57D00AD442D /* uncompr.c */; };
+		CFBD34D6301BF57D00AD442D /* infback.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34C0301BF57D00AD442D /* infback.c */; };
+		CFBD34D7301BF57D00AD442D /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34B8301BF57D00AD442D /* crc32.c */; };
+		CFBD34D8301BF57D00AD442D /* gzlib.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34BD301BF57D00AD442D /* gzlib.c */; };
+		CFBD34D9301BF57D00AD442D /* deflate.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34BA301BF57D00AD442D /* deflate.c */; };
+		CFBD34DA301BF57D00AD442D /* trees.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34C9301BF57D00AD442D /* trees.c */; };
+		CFBD34DB301BF57D00AD442D /* inflate.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34C5301BF57D00AD442D /* inflate.c */; };
+		CFBD34DC301BF57D00AD442D /* compress.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34B6301BF57D00AD442D /* compress.c */; };
+		CFBD34DD301BF57D00AD442D /* zutil.c in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34CE301BF57D00AD442D /* zutil.c */; };
+		CFBD34DF301BF58E00AD442D /* zsign.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34DE301BF58E00AD442D /* zsign.cpp */; };
+		CFBD34E6301BF8A700AD442D /* ZSignwrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34E5301BF8A700AD442D /* ZSignwrapper.mm */; };
+		CFBD34E9301BF8B900AD442D /* Zsignwrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34E8301BF8B900AD442D /* Zsignwrapper.cpp */; };
+		CFBD34F0301BFA000AD442D /* common/json.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34F1301BFA000AD442D /* common/json.cpp */; };
+		CFBD34F2301BFA010AD442D /* common/fs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34F3301BFA010AD442D /* common/fs.cpp */; };
+		CFBD34F4301BFA020AD442D /* common/sha.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34F5301BFA020AD442D /* common/sha.cpp */; };
+		CFBD34F6301BFA030AD442D /* common/log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34F7301BFA030AD442D /* common/log.cpp */; };
+		CFBD34F8301BFA040AD442D /* common/util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34F9301BFA040AD442D /* common/util.cpp */; };
+		CFBD34FA301BFA050AD442D /* common/timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34FB301BFA050AD442D /* common/timer.cpp */; };
+		CFBD34FC301BFA060AD442D /* common/archive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34FD301BFA060AD442D /* common/archive.cpp */; };
+		CFBD34FE301BFA070AD442D /* common/base64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CFBD34FF301BFA070AD442D /* common/base64.cpp */; };
+		CFBD370E301C0A0100AD442D /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = CFBD3501301BF8B900AD442D /* OpenSSL */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CFBD3473301BF4C000AD442D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CFBD345A301BF4B400AD442D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CFBD3461301BF4B400AD442D;
+			remoteInfo = FreeSign;
+		};
+		CFBD347D301BF4C000AD442D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CFBD345A301BF4B400AD442D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CFBD3461301BF4B400AD442D;
+			remoteInfo = FreeSign;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		CFBD3462301BF4B500AD442D /* FreeSign.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FreeSign.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CFBD3472301BF4C000AD442D /* FreeSignTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FreeSignTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CFBD347C301BF4C000AD442D /* FreeSignUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FreeSignUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CFBD348F301BF4DB00AD442D /* archo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = archo.h; sourceTree = "<group>"; };
+		CFBD3490301BF4DB00AD442D /* archo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = archo.cpp; sourceTree = "<group>"; };
+		CFBD3491301BF4DB00AD442D /* bundle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bundle.h; sourceTree = "<group>"; };
+		CFBD3492301BF4DB00AD442D /* bundle.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = bundle.cpp; sourceTree = "<group>"; };
+		CFBD3493301BF4DB00AD442D /* certcheck.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = certcheck.h; sourceTree = "<group>"; };
+		CFBD3494301BF4DB00AD442D /* certcheck.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = certcheck.cpp; sourceTree = "<group>"; };
+		CFBD3498301BF4E700AD442D /* FreeSign-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "FreeSign-Bridging-Header.h"; sourceTree = "<group>"; };
+		CFBD3499301BF55300AD442D /* macho.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = macho.h; sourceTree = "<group>"; };
+		CFBD349A301BF55300AD442D /* macho.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = macho.cpp; sourceTree = "<group>"; };
+		CFBD349B301BF55300AD442D /* metadata.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = metadata.h; sourceTree = "<group>"; };
+		CFBD349C301BF55300AD442D /* metadata.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = metadata.cpp; sourceTree = "<group>"; };
+		CFBD349D301BF55300AD442D /* openssl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = openssl.h; sourceTree = "<group>"; };
+		CFBD349E301BF55300AD442D /* openssl.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = openssl.cpp; sourceTree = "<group>"; };
+		CFBD349F301BF55300AD442D /* signing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = signing.h; sourceTree = "<group>"; };
+		CFBD34A0301BF55300AD442D /* signing.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = signing.cpp; sourceTree = "<group>"; };
+		CFBD34A5301BF56900AD442D /* crypt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = crypt.h; sourceTree = "<group>"; };
+		CFBD34A6301BF56900AD442D /* ioapi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ioapi.h; sourceTree = "<group>"; };
+		CFBD34A7301BF56900AD442D /* ioapi.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ioapi.c; sourceTree = "<group>"; };
+		CFBD34A8301BF56900AD442D /* iowin32.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iowin32.h; sourceTree = "<group>"; };
+		CFBD34A9301BF56900AD442D /* iowin32.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = iowin32.c; sourceTree = "<group>"; };
+		CFBD34AA301BF56900AD442D /* mztools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mztools.h; sourceTree = "<group>"; };
+		CFBD34AB301BF56900AD442D /* mztools.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = mztools.c; sourceTree = "<group>"; };
+		CFBD34AC301BF56900AD442D /* unzip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = unzip.h; sourceTree = "<group>"; };
+		CFBD34AD301BF56900AD442D /* unzip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = unzip.c; sourceTree = "<group>"; };
+		CFBD34AE301BF56900AD442D /* zip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = zip.h; sourceTree = "<group>"; };
+		CFBD34AF301BF56900AD442D /* zip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = zip.c; sourceTree = "<group>"; };
+		CFBD34B5301BF57D00AD442D /* adler32.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = adler32.c; sourceTree = "<group>"; };
+		CFBD34B6301BF57D00AD442D /* compress.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = compress.c; sourceTree = "<group>"; };
+		CFBD34B7301BF57D00AD442D /* crc32.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = crc32.h; sourceTree = "<group>"; };
+		CFBD34B8301BF57D00AD442D /* crc32.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = crc32.c; sourceTree = "<group>"; };
+		CFBD34B9301BF57D00AD442D /* deflate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = deflate.h; sourceTree = "<group>"; };
+		CFBD34BA301BF57D00AD442D /* deflate.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = deflate.c; sourceTree = "<group>"; };
+		CFBD34BB301BF57D00AD442D /* gzclose.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = gzclose.c; sourceTree = "<group>"; };
+		CFBD34BC301BF57D00AD442D /* gzguts.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gzguts.h; sourceTree = "<group>"; };
+		CFBD34BD301BF57D00AD442D /* gzlib.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = gzlib.c; sourceTree = "<group>"; };
+		CFBD34BE301BF57D00AD442D /* gzread.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = gzread.c; sourceTree = "<group>"; };
+		CFBD34BF301BF57D00AD442D /* gzwrite.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = gzwrite.c; sourceTree = "<group>"; };
+		CFBD34C0301BF57D00AD442D /* infback.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = infback.c; sourceTree = "<group>"; };
+		CFBD34C1301BF57D00AD442D /* inffast.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = inffast.h; sourceTree = "<group>"; };
+		CFBD34C2301BF57D00AD442D /* inffast.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = inffast.c; sourceTree = "<group>"; };
+		CFBD34C3301BF57D00AD442D /* inffixed.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = inffixed.h; sourceTree = "<group>"; };
+		CFBD34C4301BF57D00AD442D /* inflate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = inflate.h; sourceTree = "<group>"; };
+		CFBD34C5301BF57D00AD442D /* inflate.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = inflate.c; sourceTree = "<group>"; };
+		CFBD34C6301BF57D00AD442D /* inftrees.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = inftrees.h; sourceTree = "<group>"; };
+		CFBD34C7301BF57D00AD442D /* inftrees.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = inftrees.c; sourceTree = "<group>"; };
+		CFBD34C8301BF57D00AD442D /* trees.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = trees.h; sourceTree = "<group>"; };
+		CFBD34C9301BF57D00AD442D /* trees.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = trees.c; sourceTree = "<group>"; };
+		CFBD34CA301BF57D00AD442D /* uncompr.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = uncompr.c; sourceTree = "<group>"; };
+		CFBD34CB301BF57D00AD442D /* zconf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = zconf.h; sourceTree = "<group>"; };
+		CFBD34CC301BF57D00AD442D /* zlib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = zlib.h; sourceTree = "<group>"; };
+		CFBD34CD301BF57D00AD442D /* zutil.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = zutil.h; sourceTree = "<group>"; };
+		CFBD34CE301BF57D00AD442D /* zutil.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = zutil.c; sourceTree = "<group>"; };
+		CFBD34DE301BF58E00AD442D /* zsign.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = zsign.cpp; sourceTree = "<group>"; };
+		CFBD34E1301BF7E700AD442D /* libcryptex.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libcryptex.tbd; path = usr/lib/libcryptex.tbd; sourceTree = SDKROOT; };
+		CFBD34E4401BF8A800AD442D /* ZSignwrapper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZSignwrapper.h; sourceTree = "<group>"; };
+		CFBD34E5301BF8A700AD442D /* ZSignwrapper.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ZSignwrapper.mm; sourceTree = "<group>"; };
+		CFBD34E7301BF8B900AD442D /* Zsignwrapper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Zsignwrapper.hpp; sourceTree = "<group>"; };
+		CFBD34E8301BF8B900AD442D /* Zsignwrapper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Zsignwrapper.cpp; sourceTree = "<group>"; };
+		CFBD34F1301BFA000AD442D /* common/json.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = common/json.cpp; sourceTree = "<group>"; };
+		CFBD34F3301BFA010AD442D /* common/fs.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = common/fs.cpp; sourceTree = "<group>"; };
+		CFBD34F5301BFA020AD442D /* common/sha.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = common/sha.cpp; sourceTree = "<group>"; };
+		CFBD34F7301BFA030AD442D /* common/log.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = common/log.cpp; sourceTree = "<group>"; };
+		CFBD34F9301BFA040AD442D /* common/util.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = common/util.cpp; sourceTree = "<group>"; };
+		CFBD34FB301BFA050AD442D /* common/timer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = common/timer.cpp; sourceTree = "<group>"; };
+		CFBD34FD301BFA060AD442D /* common/archive.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = common/archive.cpp; sourceTree = "<group>"; };
+		CFBD34FF301BFA070AD442D /* common/base64.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = common/base64.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		CFBD3464301BF4B500AD442D /* FreeSign */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FreeSign;
+			sourceTree = "<group>";
+		};
+		CFBD3475301BF4C000AD442D /* FreeSignTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FreeSignTests;
+			sourceTree = "<group>";
+		};
+		CFBD347F301BF4C000AD442D /* FreeSignUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FreeSignUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CFBD345F301BF4B400AD442D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CFBD370E301C0A0100AD442D /* OpenSSL in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CFBD346F301BF4C000AD442D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CFBD3479301BF4C000AD442D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CFBD3459301BF4B400AD442D = {
+			isa = PBXGroup;
+			children = (
+				CFBD34E5301BF8A700AD442D /* ZSignwrapper.mm */,
+				CFBD34E4401BF8A800AD442D /* ZSignwrapper.h */,
+				CFBD34E7301BF8B900AD442D /* Zsignwrapper.hpp */,
+				CFBD34E8301BF8B900AD442D /* Zsignwrapper.cpp */,
+				CFBD3464301BF4B500AD442D /* FreeSign */,
+				CFBD3475301BF4C000AD442D /* FreeSignTests */,
+				CFBD347F301BF4C000AD442D /* FreeSignUITests */,
+				CFBD3463301BF4B500AD442D /* Products */,
+				CFBD348F301BF4DB00AD442D /* archo.h */,
+				CFBD3490301BF4DB00AD442D /* archo.cpp */,
+				CFBD3491301BF4DB00AD442D /* bundle.h */,
+				CFBD3492301BF4DB00AD442D /* bundle.cpp */,
+				CFBD3493301BF4DB00AD442D /* certcheck.h */,
+				CFBD3494301BF4DB00AD442D /* certcheck.cpp */,
+				CFBD3498301BF4E700AD442D /* FreeSign-Bridging-Header.h */,
+				CFBD3499301BF55300AD442D /* macho.h */,
+				CFBD349A301BF55300AD442D /* macho.cpp */,
+				CFBD349B301BF55300AD442D /* metadata.h */,
+				CFBD349C301BF55300AD442D /* metadata.cpp */,
+				CFBD349D301BF55300AD442D /* openssl.h */,
+				CFBD349E301BF55300AD442D /* openssl.cpp */,
+				CFBD349F301BF55300AD442D /* signing.h */,
+				CFBD34A0301BF55300AD442D /* signing.cpp */,
+				CFBD34A5301BF56900AD442D /* crypt.h */,
+				CFBD34A6301BF56900AD442D /* ioapi.h */,
+				CFBD34A7301BF56900AD442D /* ioapi.c */,
+				CFBD34A8301BF56900AD442D /* iowin32.h */,
+				CFBD34A9301BF56900AD442D /* iowin32.c */,
+				CFBD34AA301BF56900AD442D /* mztools.h */,
+				CFBD34AB301BF56900AD442D /* mztools.c */,
+				CFBD34AC301BF56900AD442D /* unzip.h */,
+				CFBD34AD301BF56900AD442D /* unzip.c */,
+				CFBD34AE301BF56900AD442D /* zip.h */,
+				CFBD34AF301BF56900AD442D /* zip.c */,
+				CFBD34B5301BF57D00AD442D /* adler32.c */,
+				CFBD34B6301BF57D00AD442D /* compress.c */,
+				CFBD34B7301BF57D00AD442D /* crc32.h */,
+				CFBD34B8301BF57D00AD442D /* crc32.c */,
+				CFBD34B9301BF57D00AD442D /* deflate.h */,
+				CFBD34BA301BF57D00AD442D /* deflate.c */,
+				CFBD34BB301BF57D00AD442D /* gzclose.c */,
+				CFBD34BC301BF57D00AD442D /* gzguts.h */,
+				CFBD34BD301BF57D00AD442D /* gzlib.c */,
+				CFBD34BE301BF57D00AD442D /* gzread.c */,
+				CFBD34BF301BF57D00AD442D /* gzwrite.c */,
+				CFBD34C0301BF57D00AD442D /* infback.c */,
+				CFBD34C1301BF57D00AD442D /* inffast.h */,
+				CFBD34C2301BF57D00AD442D /* inffast.c */,
+				CFBD34C3301BF57D00AD442D /* inffixed.h */,
+				CFBD34C4301BF57D00AD442D /* inflate.h */,
+				CFBD34C5301BF57D00AD442D /* inflate.c */,
+				CFBD34C6301BF57D00AD442D /* inftrees.h */,
+				CFBD34C7301BF57D00AD442D /* inftrees.c */,
+				CFBD34C8301BF57D00AD442D /* trees.h */,
+				CFBD34C9301BF57D00AD442D /* trees.c */,
+				CFBD34CA301BF57D00AD442D /* uncompr.c */,
+				CFBD34CB301BF57D00AD442D /* zconf.h */,
+				CFBD34CC301BF57D00AD442D /* zlib.h */,
+				CFBD34CD301BF57D00AD442D /* zutil.h */,
+				CFBD34CE301BF57D00AD442D /* zutil.c */,
+				CFBD34DE301BF58E00AD442D /* zsign.cpp */,
+				CFBD34F1301BFA000AD442D /* common/json.cpp */,
+				CFBD34F3301BFA010AD442D /* common/fs.cpp */,
+				CFBD34F5301BFA020AD442D /* common/sha.cpp */,
+				CFBD34F7301BFA030AD442D /* common/log.cpp */,
+				CFBD34F9301BFA040AD442D /* common/util.cpp */,
+				CFBD34FB301BFA050AD442D /* common/timer.cpp */,
+				CFBD34FD301BFA060AD442D /* common/archive.cpp */,
+				CFBD34FF301BFA070AD442D /* common/base64.cpp */,
+				CFBD34E0301BF7E700AD442D /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		CFBD3463301BF4B500AD442D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CFBD3462301BF4B500AD442D /* FreeSign.app */,
+				CFBD3472301BF4C000AD442D /* FreeSignTests.xctest */,
+				CFBD347C301BF4C000AD442D /* FreeSignUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CFBD34E0301BF7E700AD442D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				CFBD34E1301BF7E700AD442D /* libcryptex.tbd */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CFBD3461301BF4B400AD442D /* FreeSign */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CFBD3486301BF4C000AD442D /* Build configuration list for PBXNativeTarget "FreeSign" */;
+			buildPhases = (
+				CFBD345E301BF4B400AD442D /* Sources */,
+				CFBD345F301BF4B400AD442D /* Frameworks */,
+				CFBD3460301BF4B400AD442D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CFBD3464301BF4B500AD442D /* FreeSign */,
+			);
+			name = FreeSign;
+			packageProductDependencies = (
+				CFBD3501301BF8B900AD442D /* OpenSSL */,
+			);
+			productName = FreeSign;
+			productReference = CFBD3462301BF4B500AD442D /* FreeSign.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CFBD3471301BF4C000AD442D /* FreeSignTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CFBD3489301BF4C000AD442D /* Build configuration list for PBXNativeTarget "FreeSignTests" */;
+			buildPhases = (
+				CFBD346E301BF4C000AD442D /* Sources */,
+				CFBD346F301BF4C000AD442D /* Frameworks */,
+				CFBD3470301BF4C000AD442D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CFBD3474301BF4C000AD442D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CFBD3475301BF4C000AD442D /* FreeSignTests */,
+			);
+			name = FreeSignTests;
+			packageProductDependencies = (
+			);
+			productName = FreeSignTests;
+			productReference = CFBD3472301BF4C000AD442D /* FreeSignTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CFBD347B301BF4C000AD442D /* FreeSignUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CFBD348C301BF4C000AD442D /* Build configuration list for PBXNativeTarget "FreeSignUITests" */;
+			buildPhases = (
+				CFBD3478301BF4C000AD442D /* Sources */,
+				CFBD3479301BF4C000AD442D /* Frameworks */,
+				CFBD347A301BF4C000AD442D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CFBD347E301BF4C000AD442D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CFBD347F301BF4C000AD442D /* FreeSignUITests */,
+			);
+			name = FreeSignUITests;
+			packageProductDependencies = (
+			);
+			productName = FreeSignUITests;
+			productReference = CFBD347C301BF4C000AD442D /* FreeSignUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CFBD345A301BF4B400AD442D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					CFBD3461301BF4B400AD442D = {
+						CreatedOnToolsVersion = 16.2;
+						LastSwiftMigration = 1620;
+					};
+					CFBD3471301BF4C000AD442D = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = CFBD3461301BF4B400AD442D;
+					};
+					CFBD347B301BF4C000AD442D = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = CFBD3461301BF4B400AD442D;
+					};
+				};
+			};
+			buildConfigurationList = CFBD345D301BF4B400AD442D /* Build configuration list for PBXProject "FreeSign" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CFBD3459301BF4B400AD442D;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CFBD3500301BF8B900AD442D /* XCRemoteSwiftPackageReference "OpenSSL-Package" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CFBD3463301BF4B500AD442D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CFBD3461301BF4B400AD442D /* FreeSign */,
+				CFBD3471301BF4C000AD442D /* FreeSignTests */,
+				CFBD347B301BF4C000AD442D /* FreeSignUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CFBD3460301BF4B400AD442D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CFBD3470301BF4C000AD442D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CFBD347A301BF4C000AD442D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CFBD345E301BF4B400AD442D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CFBD34E6301BF8A700AD442D /* ZSignwrapper.mm in Sources */,
+				CFBD3495301BF4DB00AD442D /* certcheck.cpp in Sources */,
+				CFBD34B0301BF56900AD442D /* ioapi.c in Sources */,
+				CFBD34B1301BF56900AD442D /* unzip.c in Sources */,
+				CFBD34B2301BF56900AD442D /* iowin32.c in Sources */,
+				CFBD34B3301BF56900AD442D /* zip.c in Sources */,
+				CFBD34B4301BF56900AD442D /* mztools.c in Sources */,
+				CFBD3496301BF4DB00AD442D /* archo.cpp in Sources */,
+				CFBD34CF301BF57D00AD442D /* inftrees.c in Sources */,
+				CFBD34D0301BF57D00AD442D /* gzread.c in Sources */,
+				CFBD34D1301BF57D00AD442D /* inffast.c in Sources */,
+				CFBD34D2301BF57D00AD442D /* adler32.c in Sources */,
+				CFBD34E9301BF8B900AD442D /* Zsignwrapper.cpp in Sources */,
+				CFBD34F0301BFA000AD442D /* common/json.cpp in Sources */,
+				CFBD34F2301BFA010AD442D /* common/fs.cpp in Sources */,
+				CFBD34F4301BFA020AD442D /* common/sha.cpp in Sources */,
+				CFBD34F6301BFA030AD442D /* common/log.cpp in Sources */,
+				CFBD34F8301BFA040AD442D /* common/util.cpp in Sources */,
+				CFBD34FA301BFA050AD442D /* common/timer.cpp in Sources */,
+				CFBD34FC301BFA060AD442D /* common/archive.cpp in Sources */,
+				CFBD34FE301BFA070AD442D /* common/base64.cpp in Sources */,
+				CFBD34D3301BF57D00AD442D /* gzclose.c in Sources */,
+				CFBD34D4301BF57D00AD442D /* gzwrite.c in Sources */,
+				CFBD34D5301BF57D00AD442D /* uncompr.c in Sources */,
+				CFBD34D6301BF57D00AD442D /* infback.c in Sources */,
+				CFBD34D7301BF57D00AD442D /* crc32.c in Sources */,
+				CFBD34D8301BF57D00AD442D /* gzlib.c in Sources */,
+				CFBD34D9301BF57D00AD442D /* deflate.c in Sources */,
+				CFBD34DA301BF57D00AD442D /* trees.c in Sources */,
+				CFBD34DB301BF57D00AD442D /* inflate.c in Sources */,
+				CFBD34DC301BF57D00AD442D /* compress.c in Sources */,
+				CFBD34DD301BF57D00AD442D /* zutil.c in Sources */,
+				CFBD3497301BF4DB00AD442D /* bundle.cpp in Sources */,
+				CFBD34DF301BF58E00AD442D /* zsign.cpp in Sources */,
+				CFBD34A1301BF55300AD442D /* openssl.cpp in Sources */,
+				CFBD34A2301BF55300AD442D /* metadata.cpp in Sources */,
+				CFBD34A3301BF55300AD442D /* macho.cpp in Sources */,
+				CFBD34A4301BF55300AD442D /* signing.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CFBD346E301BF4C000AD442D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CFBD3478301BF4C000AD442D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CFBD3474301BF4C000AD442D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CFBD3461301BF4B400AD442D /* FreeSign */;
+			targetProxy = CFBD3473301BF4C000AD442D /* PBXContainerItemProxy */;
+		};
+		CFBD347E301BF4C000AD442D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CFBD3461301BF4B400AD442D /* FreeSign */;
+			targetProxy = CFBD347D301BF4C000AD442D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		CFBD3484301BF4C000AD442D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)",
+					"$(SRCROOT)/common",
+					"$(SRCROOT)/third-party/minizip",
+					"$(SRCROOT)/third-party/zlib",
+					"/usr/local/Cellar/openssl@3/3.6.3/include",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CFBD3485301BF4C000AD442D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)",
+					"$(SRCROOT)/common",
+					"$(SRCROOT)/third-party/minizip",
+					"$(SRCROOT)/third-party/zlib",
+					"/usr/local/Cellar/openssl@3/3.6.3/include",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CFBD3487301BF4C000AD442D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"ZSIGN_IOS=1",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "FreeSignTarget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = FreeSign;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freesign.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "FreeSign-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+				name = Debug;
+		};
+		CFBD3488301BF4C000AD442D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"ZSIGN_IOS=1",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "FreeSignTarget-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = FreeSign;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freesign.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "FreeSign-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+				name = Release;
+		};
+		CFBD348A301BF4C000AD442D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freesign.app.FreeSignTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FreeSign.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FreeSign";
+			};
+				name = Debug;
+		};
+		CFBD348B301BF4C000AD442D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freesign.app.FreeSignTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FreeSign.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FreeSign";
+			};
+				name = Release;
+		};
+		CFBD348D301BF4C000AD442D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freesign.app.FreeSignUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FreeSign;
+			};
+				name = Debug;
+		};
+		CFBD348E301BF4C000AD442D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freesign.app.FreeSignUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FreeSign;
+			};
+				name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CFBD345D301BF4B400AD442D /* Build configuration list for PBXProject "FreeSign" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CFBD3484301BF4C000AD442D /* Debug */,
+				CFBD3485301BF4C000AD442D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CFBD3486301BF4C000AD442D /* Build configuration list for PBXNativeTarget "FreeSign" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CFBD3487301BF4C000AD442D /* Debug */,
+				CFBD3488301BF4C000AD442D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CFBD3489301BF4C000AD442D /* Build configuration list for PBXNativeTarget "FreeSignTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CFBD348A301BF4C000AD442D /* Debug */,
+				CFBD348B301BF4C000AD442D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CFBD348C301BF4C000AD442D /* Build configuration list for PBXNativeTarget "FreeSignUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CFBD348D301BF4C000AD442D /* Debug */,
+				CFBD348E301BF4C000AD442D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CFBD3500301BF8B900AD442D /* XCRemoteSwiftPackageReference "OpenSSL-Package" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/krzyzanowskim/OpenSSL-Package.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.6.3000;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CFBD3501301BF8B900AD442D /* OpenSSL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CFBD3500301BF8B900AD442D /* XCRemoteSwiftPackageReference "OpenSSL-Package" */;
+			productName = OpenSSL;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = CFBD345A301BF4B400AD442D /* Project object */;
+}
