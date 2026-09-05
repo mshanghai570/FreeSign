@@ -125,13 +125,20 @@ struct CertificatesView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
+            Button {
+                openPicker(.p12)
+            } label: {
+                Label("Import P12 Certificate", systemImage: "key.fill")
+            }
+            .accessibilityIdentifier("certificates.importP12")
+        }
+        ToolbarItem(placement: .primaryAction) {
             Menu {
                 Button {
                     openPicker(.p12)
                 } label: {
                     Label("Import P12 Certificate", systemImage: "key.fill")
                 }
-                .accessibilityIdentifier("certificates.importP12")
                 if !dataManager.certificates.isEmpty {
                     Button {
                         selectedCertID = dataManager.certificates.first?.id
