@@ -9,10 +9,7 @@ extension ZSignWrapper {
     /// explicit bridge error and an unexpected nil result into Swift errors so
     /// callers never silently continue with an invalid identity.
     static func certificateInfo(fromP12 p12Path: String, password: String?) throws -> [AnyHashable: Any] {
-        var error: NSError?
-        let result = certificateInfoFromP12(p12Path, password: password, error: &error)
-
-        if let error { throw error }
+        let result = try certificateInfoFromP12(p12Path, password: password)
         guard let dictionary = result as? [AnyHashable: Any] else {
             throw NSError(
                 domain: "com.freesign.zsign",
@@ -32,7 +29,7 @@ extension ZSignWrapper {
         bundleId: String? = nil,
         outputPath: String? = nil
     ) -> ZSignResult {
-        signIPAAtPath(
+        signIPA(
             ipaPath,
             certPath: nil,
             pkeyPath: p12Path,

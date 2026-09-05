@@ -157,7 +157,7 @@ final class IPAAnalyzer {
         case 0x0100000C:       return "arm64"
         case 0x0200000C:       return "arm64_32"
         case 0x0100000C | 2:   return "arm64e"
-        default:               return String(format: "cpu_0x%X", t)
+        default:               return String(format: "cpu_0x%X", cpuType)
         }
     }
 
