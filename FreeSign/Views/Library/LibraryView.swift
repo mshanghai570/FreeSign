@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 struct LibraryView: View {
     @StateObject private var dataManager = AppDataManager.shared
-    @State private var theme = ThemeManager.shared
+    @ObservedObject private var theme = ThemeManager.shared
     @State private var searchText = ""
     @State private var selectedTab: LibraryTab = .apps
     @State private var showBundleBrowser = false
@@ -152,7 +152,11 @@ struct LibraryView: View {
                 }
             }
             ToolbarItem(placement: .primaryAction) {
-                TabAssistantButton(sourceView: "Library", summary: libraryAssistantSummary)
+                TabAssistantButton(
+                    sourceView: "Library",
+                    summary: libraryAssistantSummary,
+                    details: libraryAssistantDetails
+                )
             }
         }
         .overlay {
@@ -173,6 +177,24 @@ struct LibraryView: View {
         return "Library tab: \(imported) imported app(s), \(signed) signed app(s), "
              + "\(sourceApps) apps from \(dataManager.sources.count) repositories, "
              + "\(certs) certificate(s)."
+    }
+
+    /// A bounded snapshot of the library state currently visible to the user.
+    private var libraryAssistantDetails: [String: Any] {
+        let section: String
+        switch selectedTab {
+        case .apps: section = "Repository apps"
+        case .imported: section = "Imported IPAs"
+        case .signed: section = "Signed apps"
+        }
+        return [
+            "selectedSection": section,
+            "searchQuery": searchText,
+            "visibleRepositoryApps": filteredSourceApps.prefix(20).map { $0.app.name },
+            "visibleImportedApps": filteredImportedApps.prefix(20).map { "\($0.name) (\($0.bundleID))" },
+            "visibleSignedApps": filteredSignedApps.prefix(20).map { "\($0.name) (\($0.bundleID))" },
+            "availableCertificates": dataManager.certificates.prefix(10).map { $0.name }
+        ]
     }
     
     // MARK: - Imported IPAs Section

@@ -17,7 +17,9 @@ struct Certificate: Identifiable, Codable, Equatable {
     // MARK: - Storage (paths inside Documents/Certificates/)
 
     var p12Path: String
-    var password: String          // stored in plaintext for now; keychain in a future pass
+    /// Empty for new imports. Legacy records may still contain a value; new
+    /// password-protected identities are stored in the iOS Keychain by id.
+    var password: String
 
     // MARK: - Provisioning Profiles
 

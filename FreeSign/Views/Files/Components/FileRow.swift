@@ -21,6 +21,8 @@ struct FileRow: View {
     let onExtractArchive: (FileItem) -> Void
     let onPackageApp: (FileItem) -> Void
     let onImportIPA: (FileItem) -> Void
+    let onImportCertificate: (FileItem) -> Void
+    let onImportProvisioningProfile: (FileItem) -> Void
     let onOpenInEditor: (FileItem) -> Void
     
     var body: some View {
@@ -132,7 +134,11 @@ struct FileRow: View {
     }
     
     private func openFile(in file: FileItem) {
-        if file.isPlistFile || file.isEntitlementsFile {
+        if file.isP12Certificate {
+            onImportCertificate(file)
+        } else if file.isMobileProvision {
+            onImportProvisioningProfile(file)
+        } else if file.isPlistFile || file.isEntitlementsFile {
             plistFileURL = file.url
         } else if file.isTextFile || file.isCodeFile {
             textEditorFileURL = file.url
@@ -200,9 +206,18 @@ struct FileRow: View {
         // Certificate Import
         if file.isP12Certificate {
             Button {
-                onOpenInEditor(file)
+                onImportCertificate(file)
             } label: {
                 Label("Import Certificate", systemImage: "key.fill")
+            }
+        }
+
+        // Provisioning profile import
+        if file.isMobileProvision {
+            Button {
+                onImportProvisioningProfile(file)
+            } label: {
+                Label("Import Provisioning Profile", systemImage: "doc.text.badge.plus")
             }
         }
         

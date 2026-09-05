@@ -93,7 +93,11 @@ struct AppsView: View {
                 .disabled(isRefreshing)
             }
             ToolbarItem(placement: .primaryAction) {
-                TabAssistantButton(sourceView: "Apps", summary: appsAssistantSummary)
+                TabAssistantButton(
+                    sourceView: "Apps",
+                    summary: appsAssistantSummary,
+                    details: appsAssistantDetails
+                )
             }
         }
         .alert("Refresh Failed", isPresented: $showError, presenting: refreshError) { _ in
@@ -110,6 +114,16 @@ struct AppsView: View {
         let sources = dataManager.sources.count
         return "Apps tab: \(total) unique app(s) across \(sources) source(s)"
              + (searchText.isEmpty ? "" : " (\(visible) match \"\(searchText)\")") + "."
+    }
+
+    private var appsAssistantDetails: [String: Any] {
+        [
+            "searchQuery": searchText,
+            "visibleApps": filteredSourceApps.prefix(30).map { entry in
+                "\(entry.app.name) by \(entry.app.developerName) from \(entry.source.name)"
+            },
+            "sourceCount": dataManager.sources.count
+        ]
     }
 
     // MARK: - Refresh

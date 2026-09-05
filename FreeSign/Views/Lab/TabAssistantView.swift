@@ -2,24 +2,28 @@ import SwiftUI
 
 // MARK: - Tab Context
 
-/// Lightweight `AIContext` that describes what is currently on screen in a tab.
+/// A snapshot of the screen that opened the assistant. `details` contains only
+/// user-visible, non-secret data so each provider receives the information that
+/// actually appears in the active tab.
 struct TabContext: AIContext {
     let sourceView: String
     let action: AIAction
     let summary: String
+    let details: [String: Any]
 
     var payload: [String: Any] {
-        ["tab": sourceView]
+        ["tab": sourceView, "summary": summary].merging(details) { _, latest in latest }
     }
 
     enum CodingKeys: String, CodingKey {
         case sourceView, action, summary
     }
 
-    init(sourceView: String, action: AIAction, summary: String) {
+    init(sourceView: String, action: AIAction, summary: String, details: [String: Any] = [:]) {
         self.sourceView = sourceView
         self.action = action
         self.summary = summary
+        self.details = details
     }
 
     init(from decoder: Decoder) throws {
@@ -27,6 +31,7 @@ struct TabContext: AIContext {
         sourceView = try container.decode(String.self, forKey: .sourceView)
         action = try container.decode(AIAction.self, forKey: .action)
         summary = try container.decode(String.self, forKey: .summary)
+        details = [:]
     }
 
     func encode(to encoder: Encoder) throws {
@@ -39,17 +44,11 @@ struct TabContext: AIContext {
 
 // MARK: - Tab Assistant Button
 
-/// Toolbar button that opens the Lab Assistant scoped to the current tab.
-/// Drop it into any tab's toolbar:
-///
-///     .toolbar {
-///         ToolbarItem(placement: .primaryAction) {
-///             TabAssistantButton(sourceView: "Library", summary: librarySummary)
-///         }
-///     }
+/// Toolbar button that opens a persisted conversation scoped to the current tab.
 struct TabAssistantButton: View {
     let sourceView: String
     let summary: String
+    var details: [String: Any] = [:]
 
     @State private var isPresented = false
 
@@ -60,22 +59,27 @@ struct TabAssistantButton: View {
             Image(systemName: "brain")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(ThemeManager.shared.accentColor)
+                .frame(minWidth: 32, minHeight: 32)
+                .contentShape(Rectangle())
         }
-        .accessibilityLabel("Lab Assistant")
+        .buttonStyle(.plain)
+        .accessibilityLabel("Lab Assistant for \(sourceView)")
+        .accessibilityIdentifier("tabAssistant.\(sourceView)")
         .sheet(isPresented: $isPresented) {
-            TabAssistantView(sourceView: sourceView, summary: summary)
+            TabAssistantView(sourceView: sourceView, summary: summary, details: details)
         }
     }
 }
 
 // MARK: - Tab Assistant View
 
-/// Chat-style assistant available from every tab. Shows quick actions that
-/// explain / summarize / analyze the current page, plus a free-form question
-/// field. All requests are grounded in `summary` so answers stay relevant.
+/// Chat-style assistant available from every primary tab. The conversation is
+/// preserved per tab while its system prompt is rebuilt with a fresh context
+/// snapshot on each request.
 struct TabAssistantView: View {
     let sourceView: String
     let summary: String
+    var details: [String: Any] = [:]
 
     @Environment(\.dismiss) private var dismiss
     @State private var messages: [AIMessage] = []
@@ -89,23 +93,42 @@ struct TabAssistantView: View {
             VStack(spacing: 0) {
                 contextBanner
 
-                Divider()
-                    .background(AppColors.cardBorder)
+                Divider().background(AppColors.cardBorder)
 
-                ScrollView {
-                    VStack(spacing: 12) {
-                        if messages.isEmpty {
-                            quickActionsGrid
-                        } else {
-                            ForEach(messages) { message in
-                                messageBubble(message)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            if messages.isEmpty {
+                                quickActionsGrid
+                            } else {
+                                ForEach(messages) { message in
+                                    messageBubble(message)
+                                        .id(message.id)
+                                }
+                                if isGenerating {
+                                    HStack(spacing: 8) {
+                                        ProgressView().tint(ThemeManager.shared.accentColor)
+                                        Text("Thinking…")
+                                            .font(AppFont.caption)
+                                            .foregroundColor(AppColors.secondaryText)
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 4)
+                                    .id("thinking")
+                                }
                             }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .scrollContentBackground(.hidden)
+                    .onChange(of: messages.count) { _ in
+                        scrollToLatest(using: proxy)
+                    }
+                    .onChange(of: isGenerating) { _ in
+                        scrollToLatest(using: proxy)
+                    }
                 }
-                .scrollContentBackground(.hidden)
 
                 inputBar
             }
@@ -117,11 +140,24 @@ struct TabAssistantView: View {
                     Button("Done") { dismiss() }
                         .foregroundColor(AppColors.secondaryText)
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button(role: .destructive) {
+                        messages.removeAll()
+                        AIService.shared.clearConversation(for: sourceView)
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .disabled(messages.isEmpty || isGenerating)
+                    .accessibilityLabel("Clear \(sourceView) assistant conversation")
+                }
             }
+        }
+        .task(id: sourceView) {
+            messages = AIService.shared.messages(for: sourceView)
         }
     }
 
-    // MARK: - Context Banner
+    // MARK: - Context banner
 
     private var contextBanner: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -146,7 +182,7 @@ struct TabAssistantView: View {
         .background(AppColors.surface.opacity(0.6))
     }
 
-    // MARK: - Quick Actions
+    // MARK: - Quick actions
 
     private var quickActionsGrid: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -175,7 +211,6 @@ struct TabAssistantView: View {
                         }
 
                         Spacer()
-
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(AppColors.disabledText)
@@ -183,12 +218,10 @@ struct TabAssistantView: View {
                     .padding(14)
                     .background(AppColors.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(AppColors.cardBorder, lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.cardBorder, lineWidth: 1))
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.plain)
                 .disabled(isGenerating)
             }
         }
@@ -208,13 +241,11 @@ struct TabAssistantView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(AppColors.accent)
+                        .background(ThemeManager.shared.accentColor)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
-                    Text(message.timestamp.formatted(date: .omitted, time: .shortened))
-                        .font(AppFont.caption2)
-                        .foregroundColor(AppColors.disabledText)
+                    messageTimestamp(message)
                 }
-                .frame(maxWidth: .infinity * 0.78, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(message.content)
@@ -225,52 +256,54 @@ struct TabAssistantView: View {
                         .background(AppColors.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .textSelection(.enabled)
-                    Text(message.timestamp.formatted(date: .omitted, time: .shortened))
-                        .font(AppFont.caption2)
-                        .foregroundColor(AppColors.disabledText)
+                    messageTimestamp(message)
                 }
-                .frame(maxWidth: .infinity * 0.78, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer()
             }
         }
         .padding(.horizontal, 4)
     }
 
-    // MARK: - Input Bar
+    private func messageTimestamp(_ message: AIMessage) -> some View {
+        Text(message.timestamp.formatted(date: .omitted, time: .shortened))
+            .font(AppFont.caption2)
+            .foregroundColor(AppColors.disabledText)
+    }
+
+    // MARK: - Input
 
     private var inputBar: some View {
         HStack(spacing: 8) {
-            TextField("Ask about this page…", text: $inputText)
+            TextField("Ask about this tab…", text: $inputText, axis: .vertical)
                 .font(AppFont.body)
                 .foregroundColor(AppColors.primaryText)
+                .lineLimit(1...4)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(AppColors.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(AppColors.cardBorder, lineWidth: 1)
-                )
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(AppColors.cardBorder, lineWidth: 1))
                 .disabled(isGenerating)
+                .submitLabel(.send)
                 .onSubmit { sendQuestion() }
 
-            Button {
-                sendQuestion()
-            } label: {
+            Button { sendQuestion() } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundColor(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                     ? AppColors.disabledText : AppColors.accent)
+                    .foregroundColor(canSend ? ThemeManager.shared.accentColor : AppColors.disabledText)
             }
-            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isGenerating)
+            .buttonStyle(.plain)
+            .disabled(!canSend)
+            .accessibilityLabel("Send assistant message")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(
-            Rectangle()
-                .fill(AppColors.surface.opacity(0.95))
-                .ignoresSafeArea(edges: .bottom)
-        )
+        .background(Rectangle().fill(AppColors.surface.opacity(0.95)).ignoresSafeArea(edges: .bottom))
+    }
+
+    private var canSend: Bool {
+        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isGenerating
     }
 
     // MARK: - Actions
@@ -281,19 +314,11 @@ struct TabAssistantView: View {
             append(.assistant("Please configure and activate an AI provider in Settings → Lab Assistant to use this feature."))
             return
         }
-        let userMessage = AIMessage.user("\(action.displayName) this page")
-        append(userMessage)
-        isGenerating = true
 
-        Task {
-            do {
-                let context = TabContext(sourceView: sourceView, action: action, summary: summary)
-                let stream = try await AIService.shared.respond(to: action, context: context)
-                try await consume(stream)
-            } catch {
-                await fail(with: error)
-            }
-        }
+        let history = messages
+        append(.user("\(action.displayName) this tab"))
+        isGenerating = true
+        performRequest(action: action, question: nil, history: history)
     }
 
     private func sendQuestion() {
@@ -303,17 +328,28 @@ struct TabAssistantView: View {
             append(.assistant("Please configure and activate an AI provider in Settings → Lab Assistant to use this feature."))
             return
         }
+
+        let history = messages
         inputText = ""
         append(.user(question))
         isGenerating = true
+        performRequest(action: .custom, question: question, history: history)
+    }
 
+    private func performRequest(action: AIAction, question: String?, history: [AIMessage]) {
         Task {
             do {
-                let context = TabContext(sourceView: sourceView, action: .custom, summary: summary)
+                let context = TabContext(
+                    sourceView: sourceView,
+                    action: action,
+                    summary: summary,
+                    details: details
+                )
                 let stream = try await AIService.shared.respond(
-                    to: .custom,
+                    to: action,
                     context: context,
-                    userQuestion: question
+                    userQuestion: question,
+                    history: history
                 )
                 try await consume(stream)
             } catch {
@@ -327,6 +363,9 @@ struct TabAssistantView: View {
         for try await chunk in stream {
             fullResponse += chunk
         }
+        guard !fullResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AIError.emptyResponse
+        }
         await MainActor.run {
             append(.assistant(fullResponse))
             isGenerating = false
@@ -335,7 +374,7 @@ struct TabAssistantView: View {
 
     private func fail(with error: Error) async {
         await MainActor.run {
-            append(.assistant("Error: \(error.localizedDescription)"))
+            append(.assistant("Unable to respond: \(error.localizedDescription)"))
             isGenerating = false
         }
     }
@@ -344,35 +383,54 @@ struct TabAssistantView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             messages.append(message)
         }
+        AIService.shared.saveConversation(
+            messages: messages,
+            sourceView: sourceView,
+            contextSummary: summary
+        )
+    }
+
+    private func scrollToLatest(using proxy: ScrollViewProxy) {
+        DispatchQueue.main.async {
+            if isGenerating {
+                proxy.scrollTo("thinking", anchor: .bottom)
+            } else if let id = messages.last?.id {
+                proxy.scrollTo(id, anchor: .bottom)
+            }
+        }
     }
 }
 
-// MARK: - Action Presentation Helpers
+// MARK: - Action presentation helpers
 
 extension AIAction {
     var icon: String {
         switch self {
-        case .explain:   return "questionmark.circle"
-        case .analyze:   return "magnifyingglass"
-        case .suggest:   return "lightbulb"
+        case .explain: return "questionmark.circle"
+        case .analyze: return "magnifyingglass"
+        case .suggest: return "lightbulb"
         case .summarize: return "text.alignleft"
         case .findIssues: return "exclamationmark.triangle"
-        case .custom:    return "brain"
+        case .custom: return "brain"
         }
     }
 
     var promptHint: String {
         switch self {
-        case .explain:   return "Explain what's on this page and how it works"
-        case .analyze:   return "Analyze the items here for problems or insights"
-        case .suggest:   return "Suggest improvements or next steps"
-        case .summarize: return "Give me a quick summary of this page"
-        case .findIssues: return "Look for issues, warnings, or missing config"
-        case .custom:    return "Ask a custom question"
+        case .explain: return "Explain what is shown and how it works"
+        case .analyze: return "Analyze the visible items for problems or insights"
+        case .suggest: return "Suggest practical next steps"
+        case .summarize: return "Give a concise tab summary"
+        case .findIssues: return "Look for warnings, gaps, or risky configuration"
+        case .custom: return "Ask a custom question"
         }
     }
 }
 
 #Preview {
-    TabAssistantButton(sourceView: "Library", summary: "5 imported apps, 2 signed, 3 certificates")
+    TabAssistantButton(
+        sourceView: "Library",
+        summary: "5 imported apps, 2 signed apps, and 3 certificates.",
+        details: ["selectedSection": "Imported"]
+    )
 }

@@ -80,30 +80,31 @@ struct ToggleRow: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(AppColors.secondaryText)
-                .frame(width: 24)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(AppFont.body)
-                    .foregroundColor(AppColors.primaryText)
-
-                Text(subtitle)
-                    .font(AppFont.small)
+        Toggle(isOn: $isOn) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 16))
                     .foregroundColor(AppColors.secondaryText)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(AppFont.body)
+                        .foregroundColor(AppColors.primaryText)
+
+                    Text(subtitle)
+                        .font(AppFont.small)
+                        .foregroundColor(AppColors.secondaryText)
+                }
+
+                Spacer()
             }
-
-            Spacer()
-
-            Toggle("", isOn: $isOn)
-                .labelsHidden()
-                .tint(ThemeManager.shared.accentColor)
+            .contentShape(Rectangle())
         }
+        .tint(ThemeManager.shared.accentColor)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .accessibilityHint("Double-tap to toggle")
     }
 }
 
